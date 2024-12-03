@@ -18,7 +18,7 @@
 - Unreal Engine 5.3.2
 - Hiddify
 - Visual Stuio Code
-- Python 3.7.9
+- Python 3.7.9 + future, numpy==1.18.4, pygame, matplotlib, open3d, pillow
 - Drivers
 
 <br><br><br>
