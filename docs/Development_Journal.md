@@ -15,7 +15,7 @@
 - Windows 10 Pro 22H2 19045.5131
 - 7-Zip
 - Blender
-- Unreal Engine
+- Unreal Engine 5.3.2
 - Hiddify
 - Visual Stuio Code
 - Python 3.7.9
