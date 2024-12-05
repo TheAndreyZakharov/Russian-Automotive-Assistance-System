@@ -57,4 +57,12 @@ CARLA 0.9.14
 <br><br><br>
 
 
+### Настроена работа автопилота
 
+<div align="center">
+
+![image](https://github.com/user-attachments/assets/61e4692c-9cfe-4acf-a7bb-f79c39b05f81)
+
+</div>
+
+<br><br><br>
