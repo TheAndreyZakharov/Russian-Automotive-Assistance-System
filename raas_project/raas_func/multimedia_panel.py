@@ -7,9 +7,9 @@ import cv2
 import numpy as np
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QPushButton, QLabel,
-    QVBoxLayout, QHBoxLayout, QStackedWidget
+    QVBoxLayout, QHBoxLayout, QStackedWidget, QFrame, QSlider
 )
-from PyQt5.QtGui import QImage, QPixmap, QMovie
+from PyQt5.QtGui import QImage, QPixmap, QMovie, QFont
 from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation, QPoint
 from camera_360_view import Camera360
 from datetime import datetime
@@ -43,7 +43,11 @@ class RAASPanel(QWidget):
         self.init_main_screen()
         self.init_functions_screen()
         self.init_exit_screen()
+        self.init_sidebar()
+        self.init_top_bar()
+        self.init_bottom_bar()
 
+        self.stack.currentChanged.connect(self.update_interface_visibility)
         self.stack.setCurrentWidget(self.loading_screen)
 
         self.client = carla.Client('localhost', 2000)
@@ -65,7 +69,101 @@ class RAASPanel(QWidget):
         self.timer.timeout.connect(self.update_display)
         self.timer.start(33)
 
+        self.clock_timer = QTimer()
+        self.clock_timer.timeout.connect(self.update_top_clock)
+        self.clock_timer.start(1000)
+
         QTimer.singleShot(7000, lambda: self.stack.setCurrentWidget(self.welcome_screen))
+
+    def update_interface_visibility(self):
+        current = self.stack.currentWidget()
+        if current in [self.loading_screen, self.exit_screen, self.welcome_screen]:
+            self.sidebar.hide()
+            self.top_bar.hide()
+            self.bottom_bar.hide()
+        else:
+            self.sidebar.show()
+            self.top_bar.show()
+            self.bottom_bar.show()
+
+    def init_top_bar(self):
+        self.top_bar = QFrame(self)
+        self.top_bar.setGeometry(0, 0, 1280, 40)
+        self.top_bar.setStyleSheet("background-color: rgba(0, 0, 0, 180);")
+
+        self.top_time_label = QLabel(self.top_bar)
+        self.top_time_label.setStyleSheet("color: white; font-size: 18px; padding-right: 10px;")
+        self.top_time_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.top_time_label.setGeometry(880, 0, 390, 40)
+        self.update_top_clock()
+        self.top_bar.hide()
+
+    def update_top_clock(self):
+        now = datetime.now()
+        self.top_time_label.setText(now.strftime("%d.%m.%Y   %H:%M:%S"))
+
+    def init_bottom_bar(self):
+        self.bottom_bar = QFrame(self)
+        self.bottom_bar.setGeometry(100, 640, 1180, 80)
+        self.bottom_bar.setStyleSheet("background-color: rgba(0, 0, 0, 180);")
+
+        music_label = QLabel("Music - Sample", self.bottom_bar)
+        music_label.setStyleSheet("color: white; font-size: 22px; font-weight: bold;")
+        music_label.setGeometry(300, 5, 600, 30)
+        music_label.setAlignment(Qt.AlignCenter)
+
+        self.music_slider = QSlider(Qt.Horizontal, self.bottom_bar)
+        self.music_slider.setGeometry(110, 45, 960, 10)
+        self.music_slider.setValue(30)
+
+        prev_btn = QPushButton("⏮", self.bottom_bar)
+        prev_btn.setGeometry(1100, 30, 40, 30)
+        next_btn = QPushButton("⏭", self.bottom_bar)
+        next_btn.setGeometry(1140, 30, 40, 30)
+        pause_btn = QPushButton("⏯", self.bottom_bar)
+        pause_btn.setGeometry(1060, 30, 40, 30)
+
+        for btn in [prev_btn, next_btn, pause_btn]:
+            btn.setStyleSheet("color: white; font-size: 20px; background: none; border: none;")
+
+        self.bottom_bar.hide()
+
+    def init_sidebar(self):
+        self.sidebar = QFrame(self)
+        self.sidebar.setGeometry(0, 0, 100, 720)
+        self.sidebar.setStyleSheet("background-color: rgba(0, 0, 0, 150);")
+
+        layout = QVBoxLayout(self.sidebar)
+        layout.setContentsMargins(5, 20, 5, 20)
+        layout.setSpacing(15)
+
+        buttons = [
+            ("Заставка", self.show_welcome_screen),
+            ("Домой", lambda: self.stack.setCurrentWidget(self.main_screen)),
+            ("Настройки", lambda: None),
+            ("Телефон", lambda: None),
+            ("SMS", lambda: None)
+        ]
+
+        for text, callback in buttons:
+            btn = QPushButton(text)
+            btn.setFixedSize(90, 50)
+            btn.setStyleSheet("background-color: #222; color: white; font-size: 14px; border-radius: 10px;")
+            btn.clicked.connect(callback)
+            layout.addWidget(btn)
+
+        self.sidebar.raise_()
+        self.sidebar.hide()
+
+    def show_welcome_screen(self):
+        self.welcome_screen.move(0, -720)
+        self.stack.setCurrentWidget(self.welcome_screen)
+        anim = QPropertyAnimation(self.welcome_screen, b"pos")
+        anim.setDuration(700)
+        anim.setStartValue(QPoint(0, -720))
+        anim.setEndValue(QPoint(0, 0))
+        anim.start()
+        self._welcome_animation = anim
 
     def init_loading_screen(self):
         self.loading_screen = QWidget()
