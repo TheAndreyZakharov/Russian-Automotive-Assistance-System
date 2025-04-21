@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import (
     QApplication, QWidget, QPushButton, QLabel,
     QVBoxLayout, QHBoxLayout, QStackedWidget, QFrame, QSlider
 )
-from PyQt5.QtGui import QImage, QPixmap, QMovie, QFont
+from PyQt5.QtGui import QImage, QPixmap, QMovie, QFont, QPainter, QPainterPath
 from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation, QPoint
 from camera_360_view import Camera360
 from datetime import datetime
@@ -93,8 +93,8 @@ class RAASPanel(QWidget):
 
         self.top_time_label = QLabel(self.top_bar)
         self.top_time_label.setStyleSheet("color: white; font-size: 18px; padding-right: 10px;")
-        self.top_time_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.top_time_label.setGeometry(880, 0, 390, 40)
+        self.top_time_label.setAlignment(Qt.AlignCenter)
+        self.top_time_label.setGeometry(140, 0, 1140, 40)
         self.update_top_clock()
         self.top_bar.hide()
 
@@ -104,60 +104,123 @@ class RAASPanel(QWidget):
 
     def init_bottom_bar(self):
         self.bottom_bar = QFrame(self)
-        self.bottom_bar.setGeometry(100, 640, 1180, 80)
+        self.bottom_bar.setGeometry(140, 640, 1140, 80)
         self.bottom_bar.setStyleSheet("background-color: rgba(0, 0, 0, 180);")
 
-        music_label = QLabel("Music - Sample", self.bottom_bar)
-        music_label.setStyleSheet("color: white; font-size: 22px; font-weight: bold;")
-        music_label.setGeometry(300, 5, 600, 30)
-        music_label.setAlignment(Qt.AlignCenter)
+        # Иконка слева (обложка музыки)
+        music_icon = QLabel(self.bottom_bar)
+        music_icon.setGeometry(10, 5, 70, 70)
+        music_pix = QPixmap(os.path.join(self.static_dir, "music_record.jpg")).scaled(70, 70, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        music_icon.setPixmap(music_pix)
 
+        # Название и исполнитель
+        title_label = QLabel("Now Playing", self.bottom_bar)
+        title_label.setGeometry(90, 10, 150, 25)
+        title_label.setStyleSheet("color: white; font-size: 18px; font-weight: bold;")
+
+        artist_label = QLabel("Music Sample", self.bottom_bar)
+        artist_label.setGeometry(90, 35, 150, 20)
+        artist_label.setStyleSheet("color: white; font-size: 14px;")
+
+        # Ползунок перемотки
         self.music_slider = QSlider(Qt.Horizontal, self.bottom_bar)
-        self.music_slider.setGeometry(110, 45, 960, 10)
+        self.music_slider.setGeometry(250, 20, 450, 10)  # поднимаем выше (y: 35 → 20)
         self.music_slider.setValue(30)
+        self.music_slider.setStyleSheet(""
+            "QSlider::groove:horizontal { height: 6px; background: gray; border-radius: 3px; }"
+            "QSlider::handle:horizontal { background: white; border-radius: 10px; width: 14px; margin: -5px 0; }"
+        "")
 
-        prev_btn = QPushButton("⏮", self.bottom_bar)
-        prev_btn.setGeometry(1100, 30, 40, 30)
-        next_btn = QPushButton("⏭", self.bottom_bar)
-        next_btn.setGeometry(1140, 30, 40, 30)
-        pause_btn = QPushButton("⏯", self.bottom_bar)
-        pause_btn.setGeometry(1060, 30, 40, 30)
+        # Метки времени
+        time_start_label = QLabel("0:55", self.bottom_bar)
+        time_start_label.setGeometry(250, 35, 50, 20)
+        time_start_label.setStyleSheet("color: white; font-size: 12px;")
 
-        for btn in [prev_btn, next_btn, pause_btn]:
-            btn.setStyleSheet("color: white; font-size: 20px; background: none; border: none;")
+        time_end_label = QLabel("3:03", self.bottom_bar)
+        time_end_label.setGeometry(650, 35, 50, 20)
+        time_end_label.setAlignment(Qt.AlignRight)
+        time_end_label.setStyleSheet("color: white; font-size: 12px;")
+
+        # Панель управления музыкой (в виде изображения)
+        controls_label = QLabel(self.bottom_bar)
+        controls_label.setGeometry(720, 10, 220, 60)
+        controls_pix = QPixmap(os.path.join(self.static_dir, "music_bar.jpg")).scaled(220, 60, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        controls_label.setPixmap(controls_pix)
+
+        # Иконка громкости
+        volume_label = QLabel(self.bottom_bar)
+        volume_label.setGeometry(950, 10, 180, 60)
+        volume_pix = QPixmap(os.path.join(self.static_dir, "volume.jpg")).scaled(180, 60, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        volume_label.setPixmap(volume_pix)
 
         self.bottom_bar.hide()
 
     def init_sidebar(self):
         self.sidebar = QFrame(self)
-        self.sidebar.setGeometry(0, 0, 100, 720)
+        self.sidebar.setGeometry(0, 0, 140, 720)
         self.sidebar.setStyleSheet("background-color: rgba(0, 0, 0, 150);")
 
         layout = QVBoxLayout(self.sidebar)
-        layout.setContentsMargins(5, 20, 5, 20)
-        layout.setSpacing(15)
+        layout.setContentsMargins(10, 20, 5, 20)
+        layout.setSpacing(20)
 
         buttons = [
-            ("Заставка", self.show_welcome_screen),
-            ("Домой", lambda: self.stack.setCurrentWidget(self.main_screen)),
-            ("Настройки", lambda: None),
-            ("Телефон", lambda: None),
-            ("SMS", lambda: None)
+            ("Заставка", "background.jpg", self.show_welcome_screen),
+            ("Домой", "home.jpg", lambda: self.stack.setCurrentWidget(self.main_screen)),
+            ("Настройки", "settings.jpg", lambda: None),
+            ("Телефон", "phone.jpg", lambda: None),
+            ("SMS", "messeges.jpg", lambda: None)
         ]
 
-        for text, callback in buttons:
-            btn = QPushButton(text)
-            btn.setFixedSize(90, 50)
-            btn.setStyleSheet("background-color: #222; color: white; font-size: 14px; border-radius: 10px;")
+        for name, img_file, callback in buttons:
+            btn = QPushButton()
+            btn.setFixedSize(120, 120)
+            btn.setStyleSheet("QPushButton { background-color: transparent; border: none; }")
+
+            vbox = QVBoxLayout(btn)
+            vbox.setContentsMargins(0, 0, 0, 0)
+            vbox.setSpacing(4)
+            vbox.setAlignment(Qt.AlignCenter)
+
+            # Загружаем и делаем скругление
+            img_path = os.path.join(self.static_dir, img_file)
+            pix = QPixmap(img_path).scaled(100, 100, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
+            rounded = QPixmap(pix.size())
+            rounded.fill(Qt.transparent)
+
+            painter = QPainter(rounded)
+            painter.setRenderHint(QPainter.Antialiasing)
+            path = QPainterPath()
+            path.addRoundedRect(0, 0, pix.width(), pix.height(), 20, 20)
+            painter.setClipPath(path)
+            painter.drawPixmap(0, 0, pix)
+            painter.end()
+
+            icon_label = QLabel()
+            icon_label.setPixmap(rounded)
+            icon_label.setFixedSize(100, 100)
+            icon_label.setAlignment(Qt.AlignCenter)
+
+            text_label = QLabel(name)
+            text_label.setAlignment(Qt.AlignCenter)
+            text_label.setStyleSheet("color: white; font-size: 16px;")
+
+            vbox.addWidget(icon_label)
+            vbox.addWidget(text_label)
+
             btn.clicked.connect(callback)
             layout.addWidget(btn)
 
         self.sidebar.raise_()
         self.sidebar.hide()
 
+
     def show_welcome_screen(self):
+        # Перемещаем экран выше перед тем, как вставить в стек
         self.welcome_screen.move(0, -720)
         self.stack.setCurrentWidget(self.welcome_screen)
+
+        # Анимация: экран опускается вниз
         anim = QPropertyAnimation(self.welcome_screen, b"pos")
         anim.setDuration(700)
         anim.setStartValue(QPoint(0, -720))
@@ -235,13 +298,13 @@ class RAASPanel(QWidget):
                 self.animate_welcome_to_main()
 
     def animate_welcome_to_main(self):
-        animation = QPropertyAnimation(self.welcome_screen, b"pos")
-        animation.setDuration(700)
-        animation.setStartValue(self.welcome_screen.pos())
-        animation.setEndValue(QPoint(0, -720))
-        animation.finished.connect(lambda: self.stack.setCurrentWidget(self.main_screen))
-        animation.start()
-        self._welcome_animation = animation
+        anim = QPropertyAnimation(self.welcome_screen, b"pos")
+        anim.setDuration(700)
+        anim.setStartValue(self.welcome_screen.pos())
+        anim.setEndValue(QPoint(0, -720))
+        anim.finished.connect(lambda: self.stack.setCurrentWidget(self.main_screen))
+        anim.start()
+        self._welcome_animation = anim
 
     def init_exit_screen(self):
         self.exit_screen = QWidget()
@@ -261,28 +324,82 @@ class RAASPanel(QWidget):
 
     def init_main_screen(self):
         self.main_screen = QWidget()
-        layout = QVBoxLayout(self.main_screen)
 
-        bg_label = QLabel()
+        # Установка фоновой картинки
+        bg_label = QLabel(self.main_screen)
+        bg_label.setGeometry(0, 0, 1280, 720)
         bg_pix = QPixmap(self.main_bg)
         bg_label.setPixmap(bg_pix.scaled(1280, 720, Qt.KeepAspectRatioByExpanding))
         bg_label.setScaledContents(True)
-        layout.addWidget(bg_label)
 
-        overlay = QWidget()
-        overlay.setStyleSheet("background-color: rgba(0, 0, 0, 90);")
-        vbox = QVBoxLayout(overlay)
+        # Прозрачный слой с иконками — точно в центре
+        icon_overlay = QWidget(self.main_screen)
+        icon_overlay.setGeometry(140, 100, 1080, 520)  # Оставим место сверху/снизу
+        icon_overlay.setStyleSheet("background-color: transparent;")
 
-        icon_row = QHBoxLayout()
-        icon_row.addWidget(self.create_icon_button("Настройки", "#007ACC"))
-        btn_functions = self.create_icon_button("Функции", "#4CAF50")
-        btn_functions.clicked.connect(lambda: self.stack.setCurrentWidget(self.functions_screen))
-        icon_row.addWidget(btn_functions)
-        icon_row.addWidget(self.create_icon_button("Карта", "#FF9800"))
-        vbox.addLayout(icon_row)
+        grid_layout = QVBoxLayout(icon_overlay)
+        grid_layout.setContentsMargins(0, 0, 0, 0)
+        grid_layout.setSpacing(50)
+        grid_layout.setAlignment(Qt.AlignCenter)
 
-        layout.addWidget(overlay)
+        app_data = [
+            ("Функции", "functions.jpg", lambda: self.stack.setCurrentWidget(self.functions_screen)),
+            ("Обзор 360", "cameras.jpg", lambda: print("Обзор 360")),
+            ("Карты", "map.jpg", lambda: print("Карты")),
+            ("Климат Контроль", "climate.jpg", lambda: print("Климат")),
+            ("Музыка", "music.jpg", lambda: print("Музыка")),
+            ("Браузер", "browser.jpg", lambda: print("Браузер")),
+        ]
+
+        for i in range(0, len(app_data), 3):
+            row = QHBoxLayout()
+            row.setSpacing(60)
+            row.setAlignment(Qt.AlignCenter)
+            for name, icon_file, callback in app_data[i:i+3]:
+                btn = QPushButton()
+                btn.setFixedSize(200, 200)
+                btn.setStyleSheet("QPushButton { background-color: transparent; border: none; }")
+
+                vbox = QVBoxLayout(btn)
+                vbox.setContentsMargins(0, 0, 0, 0)
+                vbox.setSpacing(8)
+                vbox.setAlignment(Qt.AlignCenter)
+
+                icon = QLabel()
+                pix = QPixmap(os.path.join(self.static_dir, icon_file)).scaled(140, 140, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
+
+                # Создаём скруглённую маску
+                rounded = QPixmap(pix.size())
+                rounded.fill(Qt.transparent)
+
+                painter = QPainter(rounded)
+                painter.setRenderHint(QPainter.Antialiasing)
+                path = QPainterPath()
+                path.addRoundedRect(0, 0, pix.width(), pix.height(), 30, 30)
+                painter.setClipPath(path)
+                painter.drawPixmap(0, 0, pix)
+                painter.end()
+
+                icon.setPixmap(rounded)
+                icon.setFixedSize(140, 140)
+                icon.setAlignment(Qt.AlignCenter)
+
+                label = QLabel(name)
+                label.setStyleSheet("color: white; font-size: 16px;")
+                label.setAlignment(Qt.AlignCenter)
+
+                vbox.addWidget(icon)
+                vbox.addWidget(label)
+                btn.clicked.connect(callback)
+                row.addWidget(btn)
+
+            grid_layout.addLayout(row)
+
         self.stack.addWidget(self.main_screen)
+
+
+
+
 
     def init_functions_screen(self):
         self.functions_screen = QWidget()
