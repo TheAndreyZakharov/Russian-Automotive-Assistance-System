@@ -1,5 +1,3 @@
-# emergency_braking.py
-
 import carla
 import time
 import math
