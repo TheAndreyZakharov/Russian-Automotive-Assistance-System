@@ -33,6 +33,11 @@ class RAASPanel(QWidget):
         self.setLayout(QVBoxLayout())
         self.layout().addWidget(self.stack)
 
+        self.bg_underlay = QLabel(self)
+        self.bg_underlay.setPixmap(QPixmap(self.main_bg).scaled(1280, 720, Qt.KeepAspectRatioByExpanding))
+        self.bg_underlay.setGeometry(0, 0, 1280, 720)
+        self.bg_underlay.lower()
+
         self.init_loading_screen()
         self.init_welcome_screen()
         self.init_main_screen()
