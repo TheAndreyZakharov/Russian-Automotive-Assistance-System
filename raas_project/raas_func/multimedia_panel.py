@@ -48,6 +48,7 @@ class RAASPanel(QWidget):
         self.init_bottom_bar()
 
         self.stack.currentChanged.connect(self.update_interface_visibility)
+        self.init_view360_screen()
         self.stack.setCurrentWidget(self.loading_screen)
 
         self.client = carla.Client('localhost', 2000)
@@ -77,6 +78,7 @@ class RAASPanel(QWidget):
 
     def update_interface_visibility(self):
         current = self.stack.currentWidget()
+        # Прячем интерфейс на заставках
         if current in [self.loading_screen, self.exit_screen, self.welcome_screen]:
             self.sidebar.hide()
             self.top_bar.hide()
@@ -85,6 +87,19 @@ class RAASPanel(QWidget):
             self.sidebar.show()
             self.top_bar.show()
             self.bottom_bar.show()
+        # Автовключение 360 камеры при заходе на экран обзора
+        if current == self.view360_screen:
+            mod = self.modules["360 View"]
+            if not mod["active"]:
+                mod["object"] = Camera360(self.world, self.vehicle)
+                mod["object"].start()
+                mod["active"] = True
+        # Автовыключение 360 камеры при выходе из экрана обзора
+        elif self.modules["360 View"]["active"]:
+            self.modules["360 View"]["object"].stop()
+            self.modules["360 View"]["object"] = None
+            self.modules["360 View"]["active"] = False
+
 
     def init_top_bar(self):
         self.top_bar = QFrame(self)
@@ -344,7 +359,7 @@ class RAASPanel(QWidget):
 
         app_data = [
             ("Функции", "functions.jpg", lambda: self.stack.setCurrentWidget(self.functions_screen)),
-            ("Обзор 360", "cameras.jpg", lambda: print("Обзор 360")),
+            ("Обзор 360", "cameras.jpg", lambda: self.stack.setCurrentWidget(self.view360_screen)),
             ("Карты", "map.jpg", lambda: print("Карты")),
             ("Климат Контроль", "climate.jpg", lambda: print("Климат")),
             ("Музыка", "music.jpg", lambda: print("Музыка")),
@@ -397,10 +412,6 @@ class RAASPanel(QWidget):
 
         self.stack.addWidget(self.main_screen)
 
-
-
-
-
     def init_functions_screen(self):
         self.functions_screen = QWidget()
         layout = QVBoxLayout(self.functions_screen)
@@ -410,24 +421,95 @@ class RAASPanel(QWidget):
         back_btn.setStyleSheet("background-color: #555; color: white; font-size: 16px;")
         back_btn.clicked.connect(lambda: self.stack.setCurrentWidget(self.main_screen))
 
-        self.view_btn = QPushButton("360 View [OFF]")
         self.mirror_btn = QPushButton("Mirror Alerts [ON]")
-        for btn in (self.view_btn, self.mirror_btn):
-            btn.setFixedSize(200, 40)
-            btn.setStyleSheet("background-color: #444; color: white; font-size: 16px;")
-        self.view_btn.clicked.connect(self.toggle_360_view)
+        self.mirror_btn.setFixedSize(200, 40)
+        self.mirror_btn.setStyleSheet("background-color: #444; color: white; font-size: 16px;")
         self.mirror_btn.clicked.connect(self.toggle_mirror_alerts)
 
         self.display = QLabel()
         self.display.setFixedSize(960, 540)
         self.display.setStyleSheet("background-color: black; border: 2px solid gray;")
 
-        layout.addWidget(self.view_btn)
         layout.addWidget(self.mirror_btn)
         layout.addWidget(self.display, alignment=Qt.AlignCenter)
         layout.addWidget(back_btn, alignment=Qt.AlignCenter)
 
         self.stack.addWidget(self.functions_screen)
+
+    def init_view360_screen(self):
+        self.view360_screen = QWidget()
+
+        main_layout = QHBoxLayout(self.view360_screen)
+        main_layout.setContentsMargins(140, 0, 0, 0)
+
+        content = QWidget()
+        content_layout = QVBoxLayout(content)
+        content_layout.setAlignment(Qt.AlignBottom)
+        content_layout.setContentsMargins(0, 0, 0, 100)
+        content_layout.setSpacing(20)
+
+        # Контейнер для двух частей
+        display_container = QWidget()
+        display_container.setFixedSize(1100, 540)
+        display_layout = QHBoxLayout(display_container)
+        display_layout.setContentsMargins(0, 0, 0, 0)
+        display_layout.setSpacing(10)
+
+        # === Левая часть: 360 камера
+        left_display_container = QWidget(display_container)
+        left_display_container.setFixedSize(540, 540)
+        left_display_container.setStyleSheet("background-color: black; border: 2px solid gray;")
+        left_layout = QVBoxLayout(left_display_container)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+
+        self.display_left = QLabel()
+        self.display_left.setFixedSize(540, 540)
+        self.display_left.setStyleSheet("background-color: transparent;")
+        self.display_left.setParent(left_display_container)
+        left_layout.addWidget(self.display_left)
+
+        # === Прозрачные кнопки-области (на глаз)
+        self.cam_buttons = {}
+        cam_zones = {
+            "front": (145, 0, 275, 120),
+            "back": (145, 420, 275, 120),
+            "left": (10, 130, 120, 280),
+            "right": (430, 130, 110, 280),
+        }
+
+        for cam, (x, y, w, h) in cam_zones.items():
+            btn = QPushButton(left_display_container)
+            btn.setGeometry(x, y, w, h)
+            btn.setStyleSheet("""
+                QPushButton {
+                    background-color: rgba(255, 255, 255, 0);
+                    border: 2px solid rgba(255, 255, 255, 60);
+                }
+                QPushButton:hover {
+                    border: 2px solid white;
+                }
+            """)
+            btn.clicked.connect(lambda _, n=cam: self.set_selected_camera(n))
+            btn.raise_()  # Поверх QLabel
+            self.cam_buttons[cam] = btn
+
+        # === Правая часть: одиночная камера
+        self.display_right = QLabel()
+        self.display_right.setFixedSize(540, 540)
+        self.display_right.setStyleSheet("background-color: black; border: 2px solid gray;")
+
+        display_layout.addWidget(left_display_container)
+        display_layout.addWidget(self.display_right)
+        content_layout.addWidget(display_container)
+
+        main_layout.addWidget(content)
+        self.stack.addWidget(self.view360_screen)
+
+        self.selected_camera = "front"
+
+
+    def set_selected_camera(self, camera_name):
+        self.selected_camera = camera_name
 
     def create_icon_button(self, text, color):
         btn = QPushButton(text)
@@ -482,7 +564,23 @@ class RAASPanel(QWidget):
                 raw = pygame.image.tostring(surface, "RGB")
                 w, h = surface.get_size()
                 qimg = QImage(raw, w, h, QImage.Format_RGB888)
-                self.display.setPixmap(QPixmap.fromImage(qimg))
+                if self.modules["360 View"]["active"]:
+                    cam360 = self.modules["360 View"]["object"]
+                    surface_360 = cam360.get_surface()
+                    if surface_360:
+                        raw_360 = pygame.image.tostring(surface_360, "RGB")
+                        w, h = surface_360.get_size()
+                        img_360 = QImage(raw_360, w, h, QImage.Format_RGB888)
+                        self.display_left.setPixmap(QPixmap.fromImage(img_360))
+
+                    selected = self.selected_camera
+                    surface_cam = cam360.image_data.get(selected)
+                    if surface_cam:
+                        raw_sel = pygame.image.tostring(surface_cam, "RGB")
+                        w, h = surface_cam.get_size()
+                        img_sel = QImage(raw_sel, w, h, QImage.Format_RGB888)
+                        pixmap_sel = QPixmap.fromImage(img_sel).scaled(540, 540, Qt.KeepAspectRatio)
+                        self.display_right.setPixmap(pixmap_sel)
 
     def closeEvent(self, event):
         event.ignore()
