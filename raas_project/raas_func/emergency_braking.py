@@ -1,78 +1,104 @@
 import carla
-import time
 import math
+import time
 
 def main():
-    # Connect to CARLA server
     client = carla.Client('localhost', 2000)
     client.set_timeout(10.0)
 
     world = client.get_world()
+    vehicle = world.get_actors().filter('vehicle.*')[0]
+
+    vehicle.set_autopilot(False)
+    print(f"Connected to vehicle: {vehicle.type_id}")
+
     blueprint_library = world.get_blueprint_library()
 
-    # Get the first available vehicle
-    vehicles = world.get_actors().filter('vehicle.*')
-    if not vehicles:
-        print("[-] No vehicle found. Please run spawn_vehicle.py first.")
-        return
-
-    vehicle = vehicles[0]
-    print(f"[+] Connected to vehicle: {vehicle.type_id}")
-
-    # Attach spectator (camera) above the car
-    spectator = world.get_spectator()
-    vehicle_transform = vehicle.get_transform()
-    spectator.set_transform(carla.Transform(
-        vehicle_transform.location + carla.Location(z=10),
-        carla.Rotation(pitch=-90))
-    )
-
-    # Setup LiDAR sensor
     lidar_bp = blueprint_library.find('sensor.lidar.ray_cast')
-    lidar_bp.set_attribute('range', '20')
-    lidar_bp.set_attribute('rotation_frequency', '10')
-    lidar_bp.set_attribute('points_per_second', '10000')
+    lidar_bp.set_attribute('range', '50')
+    lidar_bp.set_attribute('rotation_frequency', '20')
+    lidar_bp.set_attribute('points_per_second', '300000')
 
-    lidar_transform = carla.Transform(carla.Location(x=1.5, z=2.4))
+    lidar_transform = carla.Transform(carla.Location(x=2.5, z=1.2))
     lidar_sensor = world.spawn_actor(lidar_bp, lidar_transform, attach_to=vehicle)
 
-    def lidar_callback(point_cloud):
-        close_points = 0
+    braking = False
 
-        for detection in point_cloud:
-            x = detection.point.x
-            y = detection.point.y
-            z = detection.point.z
+    def apply_emergency_brake():
+        control = carla.VehicleControl()
+        control.throttle = 0.0
+        control.brake = 1.0
+        vehicle.apply_control(control)
 
-            distance = math.sqrt(x**2 + y**2 + z**2)
-            angle = math.degrees(math.atan2(y, x))
+    def release_brake():
+        control = carla.VehicleControl()
+        control.brake = 0.0
+        vehicle.apply_control(control)
 
-            # Check if point is in front of car and close enough, ignore low ground noise
-            if -30 < angle < 30 and distance < 15.0 and -1.5 < z < 1.5:
-                close_points += 1
+    def get_speed():
+        v = vehicle.get_velocity()
+        return math.sqrt(v.x**2 + v.y**2 + v.z**2) * 3.6
 
-        # If enough close points detected, apply brake
-        if close_points > 10:
-            print("[!] Obstacle ahead! Forcing brake.")
-            control = vehicle.get_control()
-            control.brake = 1.0
-            control.throttle = 0.0
-            vehicle.apply_control(control)
+    stop_time = None  # отслеживаем момент полной остановки
 
-    # Start LiDAR stream
+    def lidar_callback(data):
+        nonlocal braking, stop_time
+
+        min_distance = float('inf')
+        obstacle_detected = False
+
+        for point in data:
+            x, y, z = point.point.x, point.point.y, point.point.z
+            distance = math.sqrt(x ** 2 + y ** 2 + z ** 2)
+
+            if x > 0.5 and abs(y) < 2.0 and -0.5 < z < 2.0:
+                obstacle_detected = True
+                if distance < min_distance:
+                    min_distance = distance
+
+        speed = get_speed()
+
+        if speed <= 60:
+            critical_distance = max(speed / 10, 5)
+
+            if obstacle_detected and min_distance <= critical_distance and not braking:
+                braking = True
+                stop_time = None
+                print(f"[!] Obstacle detected at {min_distance:.2f}m | Speed: {speed:.1f} km/h | BRAKING!")
+                apply_emergency_brake()
+
+            elif braking and speed < 0.5:
+                if stop_time is None:
+                    stop_time = time.time()
+                elif time.time() - stop_time > 1.0:
+                    print("[*] Vehicle fully stopped. Releasing brake.")
+                    braking = False
+                    release_brake()
+
+        elif braking:
+            print("[*] Speed too high, emergency braking disengaged.")
+            braking = False
+            release_brake()
+            stop_time = None
+
+
     lidar_sensor.listen(lambda data: lidar_callback(data))
 
-    print("[*] Emergency braking system active.")
+    print("Emergency braking system active!")
+
     try:
         while True:
-            time.sleep(0.1)
+            time.sleep(0.02)
+
     except KeyboardInterrupt:
-        print("\n[!] Stopping emergency braking system...")
+        print("Shutting down.")
+
     finally:
-        if lidar_sensor.is_listening:
-            lidar_sensor.stop()
+        lidar_sensor.stop()
         lidar_sensor.destroy()
-        print("[*] Cleanup complete.")
+        release_brake()
+        print("Sensor destroyed, clean exit.")
+
 
 if __name__ == '__main__':
     main()
