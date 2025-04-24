@@ -43,6 +43,7 @@ class RAASPanel(QWidget):
         self.init_main_screen()
         self.init_functions_screen()
         self.init_exit_screen()
+        self.init_app_screens()
         self.init_sidebar()
         self.init_top_bar()
         self.init_bottom_bar()
@@ -360,10 +361,10 @@ class RAASPanel(QWidget):
         app_data = [
             ("Функции", "functions.jpg", lambda: self.stack.setCurrentWidget(self.functions_screen)),
             ("Обзор 360", "cameras.jpg", lambda: self.stack.setCurrentWidget(self.view360_screen)),
-            ("Карты", "map.jpg", lambda: print("Карты")),
-            ("Климат Контроль", "climate.jpg", lambda: print("Климат")),
-            ("Музыка", "music.jpg", lambda: print("Музыка")),
-            ("Браузер", "browser.jpg", lambda: print("Браузер")),
+            ("Карты", "map.jpg", lambda: self.stack.setCurrentWidget(self.app_screens["map"])),
+            ("Климат Контроль", "climate.jpg", lambda: self.stack.setCurrentWidget(self.app_screens["climate"])),
+            ("Музыка", "music.jpg", lambda: self.stack.setCurrentWidget(self.app_screens["music"])),
+            ("Браузер", "browser.jpg", lambda: self.stack.setCurrentWidget(self.app_screens["browser"])),
         ]
 
         for i in range(0, len(app_data), 3):
@@ -593,6 +594,30 @@ class RAASPanel(QWidget):
         self.stack.setCurrentWidget(self.exit_screen)
         self.exit_movie_label.movie().start()
         QTimer.singleShot(5000, QApplication.instance().quit)
+
+    def init_app_screens(self):
+        self.app_screens = {}
+
+        app_configs = {
+            "browser": {"img": "browser_app.jpg", "x": 150, "y": 20, "w": 1050, "h": 580},
+            "climate": {"img": "climate_app.jpg", "x": 150, "y": 20, "w": 1050, "h": 580},
+            "map": {"img": "map_app.jpg", "x": 150, "y": 20, "w": 1050, "h": 580},
+            "music": {"img": "music_app.jpg", "x": 150, "y": 20, "w": 1050, "h": 580},
+        }
+
+        for name, config in app_configs.items():
+            screen = QWidget()
+            screen.setStyleSheet("background-color: black;")
+
+            label = QLabel(screen)
+            label.setGeometry(config["x"], config["y"], config["w"], config["h"])
+            label.setPixmap(
+                QPixmap(os.path.join(self.static_dir, config["img"]))
+                .scaled(config["w"], config["h"], Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
+            )
+
+            self.stack.addWidget(screen)
+            self.app_screens[name] = screen
 
 
 if __name__ == "__main__":
