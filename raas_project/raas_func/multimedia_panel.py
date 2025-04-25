@@ -7,7 +7,7 @@ import cv2
 import numpy as np
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QPushButton, QLabel,
-    QVBoxLayout, QHBoxLayout, QStackedWidget, QFrame, QSlider
+    QVBoxLayout, QHBoxLayout, QStackedWidget, QFrame, QSlider, QCheckBox
 )
 from PyQt5.QtGui import QImage, QPixmap, QMovie, QFont, QPainter, QPainterPath
 from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation, QPoint
@@ -416,26 +416,78 @@ class RAASPanel(QWidget):
     def init_functions_screen(self):
         self.functions_screen = QWidget()
         layout = QVBoxLayout(self.functions_screen)
+        layout.setContentsMargins(150, 50, 20, 20)  # отступы
 
-        back_btn = QPushButton("\u2190 Назад")
-        back_btn.setFixedSize(200, 40)
-        back_btn.setStyleSheet("background-color: #555; color: white; font-size: 16px;")
-        back_btn.clicked.connect(lambda: self.stack.setCurrentWidget(self.main_screen))
+        # === АЛЕРТ подтверждения (по центру)
+        self.confirm_box = QWidget(self.functions_screen)
+        self.confirm_box.setStyleSheet("background-color: rgba(0,0,0,180); border: 2px solid white; border-radius: 10px;")
+        self.confirm_box.setGeometry(400, 250, 480, 120)
+        self.confirm_box.hide()
 
-        self.mirror_btn = QPushButton("Mirror Alerts [ON]")
-        self.mirror_btn.setFixedSize(200, 40)
-        self.mirror_btn.setStyleSheet("background-color: #444; color: white; font-size: 16px;")
-        self.mirror_btn.clicked.connect(self.toggle_mirror_alerts)
+        vbox = QVBoxLayout(self.confirm_box)
+        vbox.setContentsMargins(20, 20, 20, 20)
 
-        self.display = QLabel()
-        self.display.setFixedSize(960, 540)
-        self.display.setStyleSheet("background-color: black; border: 2px solid gray;")
+        self.confirm_label = QLabel("Вы уверены, что хотите отключить функцию?")
+        self.confirm_label.setStyleSheet("color: white; font-size: 16px;")
+        vbox.addWidget(self.confirm_label)
 
-        layout.addWidget(self.mirror_btn)
-        layout.addWidget(self.display, alignment=Qt.AlignCenter)
-        layout.addWidget(back_btn, alignment=Qt.AlignCenter)
+        btns = QHBoxLayout()
+        yes_btn = QPushButton("Да")
+        no_btn = QPushButton("Нет")
+        yes_btn.setStyleSheet("background-color: #4CAF50; color: white; padding: 6px 16px; font-size: 14px;")
+        no_btn.setStyleSheet("background-color: #777; color: white; padding: 6px 16px; font-size: 14px;")
+        btns.addStretch()
+        btns.addWidget(yes_btn)
+        btns.addWidget(no_btn)
+        btns.addStretch()
+        vbox.addLayout(btns)
+
+        yes_btn.clicked.connect(self.confirm_disable)
+        no_btn.clicked.connect(self.cancel_disable)
+
+        self.confirmation_timer = QTimer()
+        self.confirmation_timer.setSingleShot(True)
+        self.confirmation_timer.timeout.connect(self.cancel_disable)
+        self.pending_toggle = None  # (button, callback)
+
+        # --- Название функции и кнопка рядом ---
+        row = QHBoxLayout()
+        row.setSpacing(20)
+
+        desc = QLabel("Уведомления слепых зон")
+        desc.setStyleSheet("color: white; font-size: 18px;")
+        desc.setFixedWidth(300)
+
+        self.mirror_btn = QPushButton("ON")
+        self.mirror_btn.setFixedSize(80, 40)
+        self.mirror_btn.setCheckable(True)
+        self.mirror_btn.setChecked(True)
+        self.mirror_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                font-size: 16px;
+                border-radius: 8px;
+            }
+            QPushButton:checked {
+                background-color: #4CAF50;
+            }
+            QPushButton:!checked {
+                background-color: #777;
+            }
+        """)
+        self.mirror_btn.clicked.connect(lambda: self.handle_toggle(self.mirror_btn, self.toggle_mirror_alerts))
+
+        row.addWidget(desc)
+        row.addWidget(self.mirror_btn)
+        row.addStretch()
+
+        layout.addLayout(row)
+        layout.addStretch()
 
         self.stack.addWidget(self.functions_screen)
+
+
 
     def init_view360_screen(self):
         self.view360_screen = QWidget()
@@ -469,7 +521,7 @@ class RAASPanel(QWidget):
         self.display_left.setParent(left_display_container)
         left_layout.addWidget(self.display_left)
 
-        # === Прозрачные кнопки-области (на глаз)
+        # === Прозрачные кнопки-области
         self.cam_buttons = {}
         cam_zones = {
             "front": (145, 0, 275, 120),
@@ -544,19 +596,72 @@ class RAASPanel(QWidget):
             self.display.clear()
         self.view_btn.setText(text)
 
-    def toggle_mirror_alerts(self):
+    def toggle_mirror_alerts(self, enabled):
         mod = self.modules["Mirror Alerts"]
-        if mod["proc"]:
-            mod["proc"].terminate()
-            mod["proc"].wait()
-        if mod["active"]:
-            mod["proc"] = subprocess.Popen(["python", os.path.abspath(os.path.join("..", "main_func", "side_mirror_cameras.py"))])
-            mod["active"] = False
-            self.mirror_btn.setText("Mirror Alerts [OFF]")
-        else:
+
+        if enabled:
+            if mod["proc"]:
+                mod["proc"].terminate()
+                mod["proc"].wait()
             mod["proc"] = subprocess.Popen(["python", "mirror_alert_toggle.py"])
             mod["active"] = True
-            self.mirror_btn.setText("Mirror Alerts [ON]")
+            self.mirror_btn.setText("ON")
+            self.mirror_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #4CAF50;
+                    color: white;
+                    font-size: 16px;
+                    border-radius: 8px;
+                }
+            """)
+        else:
+            if mod["proc"]:
+                mod["proc"].terminate()
+                mod["proc"].wait()
+            mod["proc"] = subprocess.Popen(["python", os.path.abspath(os.path.join("..", "main_func", "side_mirror_cameras.py"))])
+            mod["active"] = False
+            self.mirror_btn.setText("OFF")
+            self.mirror_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #777;
+                    color: white;
+                    font-size: 16px;
+                    border-radius: 8px;
+                }
+            """)
+
+    def handle_toggle(self, button, callback):
+        if button.isChecked():
+            button.setText("ON")
+            button.setStyleSheet("""
+                QPushButton {
+                    background-color: #4CAF50;
+                    color: white;
+                    font-size: 16px;
+                    border-radius: 8px;
+                }
+            """)
+            callback(True)
+        else:
+            button.setChecked(True)
+            self.pending_toggle = (button, callback)
+            self.confirm_label.setText("Вы уверены, что хотите отключить функцию?")
+            self.confirm_box.show()
+            self.confirmation_timer.start(20000)
+
+    def confirm_disable(self):
+        if self.pending_toggle:
+            button, callback = self.pending_toggle
+            button.setChecked(False)
+            callback(False)
+        self.confirm_box.hide()
+        self.pending_toggle = None
+        self.confirmation_timer.stop()
+
+    def cancel_disable(self):
+        self.confirm_box.hide()
+        self.pending_toggle = None
+        self.confirmation_timer.stop()
 
     def update_display(self):
         if self.modules["360 View"]["active"]:
