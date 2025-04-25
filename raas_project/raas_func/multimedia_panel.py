@@ -183,9 +183,9 @@ class RAASPanel(QWidget):
         buttons = [
             ("Заставка", "background.jpg", self.show_welcome_screen),
             ("Домой", "home.jpg", lambda: self.stack.setCurrentWidget(self.main_screen)),
-            ("Настройки", "settings.jpg", lambda: None),
-            ("Телефон", "phone.jpg", lambda: None),
-            ("SMS", "messeges.jpg", lambda: None)
+            ("Настройки", "settings.jpg", lambda: self.stack.setCurrentWidget(self.app_screens["settings"])),
+            ("Телефон", "phone.jpg", lambda: self.stack.setCurrentWidget(self.app_screens["phone"])),
+            ("SMS", "messeges.jpg", lambda: self.stack.setCurrentWidget(self.app_screens["messeges"]))
         ]
 
         for name, img_file, callback in buttons:
@@ -708,6 +708,9 @@ class RAASPanel(QWidget):
             "climate": {"img": "climate_app.jpg", "x": 150, "y": 20, "w": 1050, "h": 580},
             "map": {"img": "map_app.jpg", "x": 150, "y": 20, "w": 1050, "h": 580},
             "music": {"img": "music_app.jpg", "x": 150, "y": 20, "w": 1050, "h": 580},
+            "settings": {"img": "settings_app.jpg", "x": 150, "y": 20, "w": 1050, "h": 580},
+            "phone": {"img": "phone_app.jpg", "x": 150, "y": 20, "w": 1050, "h": 580},
+            "messeges": {"img": "messeges_app.jpg", "x": 150, "y": 20, "w": 1050, "h": 580},
         }
 
         for name, config in app_configs.items():
