@@ -60,19 +60,17 @@ def main():
             velocity = vehicle.get_velocity()
             speed = (velocity.x**2 + velocity.y**2 + velocity.z**2)**0.5
 
-            if keys[pygame.K_s]:
-                if speed < 0.1 and not manual_gear:
-                    control.throttle = 0.5
-                    control.brake = 0.0
-                    control.reverse = True
+            if manual_gear:
+                control.manual_gear_shift = True
+                if control.gear == -1:
+                    control.throttle = 0.5 if keys[pygame.K_w] else 0.0
                 else:
-                    control.throttle = 0.0
-                    control.brake = 1.0
-                    control.reverse = False
+                    control.throttle = 1.0 if keys[pygame.K_w] else 0.0
+                control.brake = 1.0 if keys[pygame.K_s] else 0.0
             else:
                 control.reverse = False
-                control.brake = 0.0
                 control.throttle = 1.0 if keys[pygame.K_w] else 0.0
+                control.brake = 1.0 if keys[pygame.K_s] else 0.0
 
             control.steer = 0.0
             if keys[pygame.K_a]:

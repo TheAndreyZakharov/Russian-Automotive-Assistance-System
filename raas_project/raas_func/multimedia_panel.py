@@ -75,6 +75,10 @@ class RAASPanel(QWidget):
         self.clock_timer.timeout.connect(self.update_top_clock)
         self.clock_timer.start(1000)
 
+        self.reverse_check_timer = QTimer()
+        self.reverse_check_timer.timeout.connect(self.check_reverse_gear)
+        self.reverse_check_timer.start(500)  # каждые полсекунды
+
         QTimer.singleShot(7000, lambda: self.stack.setCurrentWidget(self.welcome_screen))
 
     def update_interface_visibility(self):
@@ -563,6 +567,45 @@ class RAASPanel(QWidget):
 
     def set_selected_camera(self, camera_name):
         self.selected_camera = camera_name
+
+    def check_reverse_gear(self):
+        control = self.vehicle.get_control()
+
+        if control.reverse:
+            if self.stack.currentWidget() != self.view360_screen:
+                self.set_selected_camera("back")
+                self.stack.setCurrentWidget(self.view360_screen)
+            self._was_in_reverse = True
+
+            # Остановим все таймеры на случай повторного включения задней
+            if hasattr(self, "_reverse_timer"):
+                self._reverse_timer.stop()
+            if hasattr(self, "_front_timer"):
+                self._front_timer.stop()
+            if hasattr(self, "_exit_timer"):
+                self._exit_timer.stop()
+
+        else:
+            if getattr(self, "_was_in_reverse", False) and self.stack.currentWidget() == self.view360_screen:
+                self._was_in_reverse = False
+
+                # 2 секунды — оставляем заднюю
+                self._reverse_timer = QTimer()
+                self._reverse_timer.setSingleShot(True)
+                self._reverse_timer.timeout.connect(self._switch_to_front_camera)
+                self._reverse_timer.start(2000)
+
+    def _switch_to_front_camera(self):
+        self.set_selected_camera("front")
+
+        self._front_timer = QTimer()
+        self._front_timer.setSingleShot(True)
+        self._front_timer.timeout.connect(self._exit_view360_after_front)
+        self._front_timer.start(5000)
+
+    def _exit_view360_after_front(self):
+        self.stack.setCurrentWidget(self.main_screen)
+
 
     def create_icon_button(self, text, color):
         btn = QPushButton(text)
