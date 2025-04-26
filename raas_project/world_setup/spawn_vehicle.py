@@ -19,7 +19,7 @@ def main():
     vehicle_bp = mkz_blueprints[0]
 
     if vehicle_bp.has_attribute("color"):
-        vehicle_bp.set_attribute("color", "0,0,0")  # Set color to black
+        vehicle_bp.set_attribute("color", "50,50,50")
 
     spawn_points = world.get_map().get_spawn_points()
     if not spawn_points:
