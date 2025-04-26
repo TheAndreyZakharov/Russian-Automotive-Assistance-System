@@ -4,6 +4,7 @@ import numpy as np
 import time
 
 def camera_callback(image, data_dict, key):
+    # Обработка изображения от камеры
     array = np.frombuffer(image.raw_data, dtype=np.uint8)
     array = np.reshape(array, (image.height, image.width, 4))
     image_rgb = array[:, :, :3]  # Убираем альфа-канал
@@ -15,18 +16,18 @@ def main():
     world = client.get_world()
     blueprint_library = world.get_blueprint_library()
 
-    # Получаем уже существующую машину
-    vehicles = world.get_actors().filter('vehicle.*')
+    # Получаем все машины
+    vehicles = world.get_actors().filter('vehicle.lincoln.mkz_2020')
     vehicle = None
-    for v in vehicles:
-        if 'nissan' in v.type_id or 'model3' in v.type_id:
-            vehicle = v
-            break
+
+    if vehicles:
+        # Выбираем машину с минимальным ID
+        vehicle = min(vehicles, key=lambda v: v.id)
 
     if not vehicle:
-        print("❗ Автомобиль не найден. Сначала запусти spawn_vehicle.py")
+        print("❗ Lincoln MKZ 2020 not found. Please spawn it first.")
         return
-    print(f"[+] Найден автомобиль: {vehicle.type_id}")
+    print(f"[+] Vehicle found: {vehicle.type_id} (ID {vehicle.id})")
 
     # Настройки камеры
     camera_bp = blueprint_library.find('sensor.camera.rgb')
@@ -34,9 +35,11 @@ def main():
     camera_bp.set_attribute('image_size_y', '480')
     camera_bp.set_attribute('fov', '90')
 
-    # Точки размещения (относительно автомобиля)
-    transform_left = carla.Transform(carla.Location(x=0.8, y=-1.0, z=1.5), carla.Rotation(yaw=-150))
-    transform_right = carla.Transform(carla.Location(x=0.8, y=1.0, z=1.5), carla.Rotation(yaw=150))
+    # Точки размещения камер (относительно автомобиля)
+    transform_left = carla.Transform(carla.Location(x=0.75, y=-0.9, z=1.1), carla.Rotation(yaw=180))
+    transform_right = carla.Transform(carla.Location(x=0.75, y=0.9, z=1.1), carla.Rotation(yaw=180))
+    #x=0.8, y=-1.0, z=1.5, -150
+    #x=0.8, y=1.0, z=1.5, =150
 
 
     # Спавним камеры и крепим к авто
@@ -50,7 +53,7 @@ def main():
     left_camera.listen(lambda image: camera_callback(image, image_data, 'left'))
     right_camera.listen(lambda image: camera_callback(image, image_data, 'right'))
 
-    print("[*] Камеры зеркал активны. Нажмите Q для выхода.")
+    print("[*] Mirror cameras are active. Press Q to exit.")
 
     try:
         while True:
@@ -64,7 +67,7 @@ def main():
             time.sleep(0.03)
 
     finally:
-        print("[*] Завершение...")
+        print("[*] Shutting down...")
         left_camera.stop()
         right_camera.stop()
         left_camera.destroy()

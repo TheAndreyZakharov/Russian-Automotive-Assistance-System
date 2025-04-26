@@ -14,7 +14,6 @@ from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation, QPoint
 from camera_360_view import Camera360
 from datetime import datetime
 
-
 class RAASPanel(QWidget):
     def __init__(self):
         super().__init__()

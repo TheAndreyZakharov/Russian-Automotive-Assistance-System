@@ -4,6 +4,7 @@ import numpy as np
 import time
 
 def camera_callback(image, data_dict, key):
+    # Обработка изображения от камеры
     array = np.frombuffer(image.raw_data, dtype=np.uint8)
     array = np.reshape(array, (image.height, image.width, 4))
     image_rgb = array[:, :, :3]  # Убираем альфа-канал
@@ -15,18 +16,18 @@ def main():
     world = client.get_world()
     blueprint_library = world.get_blueprint_library()
 
-    # Получаем уже существующую машину
-    vehicles = world.get_actors().filter('vehicle.*')
+    # Получаем все машины
+    vehicles = world.get_actors().filter('vehicle.lincoln.mkz_2020')
     vehicle = None
-    for v in vehicles:
-        if 'nissan' in v.type_id or 'model3' in v.type_id:
-            vehicle = v
-            break
+
+    if vehicles:
+        # Выбираем машину с минимальным ID
+        vehicle = min(vehicles, key=lambda v: v.id)
 
     if not vehicle:
-        print("❗ Автомобиль не найден. Сначала запусти spawn_vehicle.py")
+        print("Lincoln MKZ 2020 not found. Please spawn it first.")
         return
-    print(f"[+] Найден автомобиль: {vehicle.type_id}")
+    print(f"[+] Vehicle found: {vehicle.type_id} (ID {vehicle.id})")
 
     # Настройки камеры
     camera_bp = blueprint_library.find('sensor.camera.rgb')
@@ -34,10 +35,10 @@ def main():
     camera_bp.set_attribute('image_size_y', '480')
     camera_bp.set_attribute('fov', '90')
 
-    # Точки размещения (относительно автомобиля)
+    # Точка размещения камеры (относительно автомобиля)
     transform_back = carla.Transform(carla.Location(x=-10, y=0, z=4), carla.Rotation(yaw=-1))
 
-    # Спавним камеры и крепим к авто
+    # Спавним камеру и крепим к авто
     back_camera = world.spawn_actor(camera_bp, transform_back, attach_to=vehicle)
 
     # Словарь для изображений
@@ -46,7 +47,7 @@ def main():
     # Подключаем обработку кадров
     back_camera.listen(lambda image: camera_callback(image, image_data, 'back'))
 
-    print("[*] Камера 3 лица активна. Нажмите Q для выхода.")
+    print("[*] 3rd person camera is active. Press Q to exit.")
 
     try:
         while True:
@@ -60,7 +61,7 @@ def main():
             time.sleep(0.03)
 
     finally:
-        print("[*] Завершение...")
+        print("[*] Shutting down...")
         back_camera.stop()
         back_camera.destroy()
         cv2.destroyAllWindows()

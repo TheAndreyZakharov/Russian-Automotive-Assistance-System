@@ -28,11 +28,15 @@ class Camera360:
         camera_bp.set_attribute('fov', '120')
 
         transforms = {
-            'front': carla.Transform(carla.Location(x=2.6, z=1.2), carla.Rotation(yaw=0)),
-            'back': carla.Transform(carla.Location(x=-2.5, z=1.9), carla.Rotation(yaw=180)),
-            'left': carla.Transform(carla.Location(x=0.8, y=-1.2, z=1.5), carla.Rotation(yaw=-90)),
-            'right': carla.Transform(carla.Location(x=0.8, y=1.2, z=1.5), carla.Rotation(yaw=90)),
+            'front': carla.Transform(carla.Location(x=2.42, z=0.9), carla.Rotation(yaw=0)),
+            'back': carla.Transform(carla.Location(x=-2.47, z=1.15), carla.Rotation(yaw=180)),
+            'left': carla.Transform(carla.Location(x=0.75, y=-1.1, z=1.1), carla.Rotation(yaw=-90)),
+            'right': carla.Transform(carla.Location(x=0.75, y=1.1, z=1.1), carla.Rotation(yaw=90)),
         }
+        #x=2.6, z=1.2, 0
+        #x=-2.5, z=1.9, 180
+        #x=0.8, y=-1.2, z=1.5, -90
+        #x=0.8, y=1.2, z=1.5  90
 
         for key, tf in transforms.items():
             cam = self.world.spawn_actor(camera_bp, tf, attach_to=self.vehicle)

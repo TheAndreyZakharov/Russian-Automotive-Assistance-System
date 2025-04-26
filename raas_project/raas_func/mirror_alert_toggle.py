@@ -33,28 +33,30 @@ def main():
     world = client.get_world()
     bp_lib = world.get_blueprint_library()
 
-    # 🟢 Выбор машины с минимальным ID
+    # Выбор машины с минимальным ID
     vehicles = list(world.get_actors().filter('vehicle.*'))
     if not vehicles:
-        print("❗ Машина не найдена.")
+        print("Car not found")
         return
     vehicle = sorted(vehicles, key=lambda v: v.id)[0]
     print(f"[+] Подключено к машине: {vehicle.type_id} (ID {vehicle.id})")
 
-    # 📁 Иконка
+    # Иконка
     icon_path = os.path.join("..", "static", "photos", "alert_icon.png")
     icon = cv2.imread(icon_path, cv2.IMREAD_UNCHANGED)
     if icon is None:
-        print("❗ alert_icon.png не найден.")
+        print("alert_icon.png not found.")
         return
 
-    # 🎥 Камеры
+    # Камеры
     cam_bp = bp_lib.find('sensor.camera.rgb')
     cam_bp.set_attribute('image_size_x', '640')
     cam_bp.set_attribute('image_size_y', '480')
     cam_bp.set_attribute('fov', '90')
-    cam_tf_left = carla.Transform(carla.Location(x=0.8, y=-1.0, z=1.5), carla.Rotation(yaw=-150))
-    cam_tf_right = carla.Transform(carla.Location(x=0.8, y=1.0, z=1.5), carla.Rotation(yaw=150))
+    cam_tf_left = carla.Transform(carla.Location(x=0.75, y=-0.9, z=1.1), carla.Rotation(yaw=180))
+    cam_tf_right = carla.Transform(carla.Location(x=0.75, y=0.9, z=1.1), carla.Rotation(yaw=180))
+    #x=0.8, y=-1.0, z=1.5, -150
+    #x=0.8, y=1.0, z=1.5, =150
 
     left_cam = world.spawn_actor(cam_bp, cam_tf_left, attach_to=vehicle)
     right_cam = world.spawn_actor(cam_bp, cam_tf_right, attach_to=vehicle)
@@ -63,11 +65,11 @@ def main():
     left_cam.listen(lambda img: camera_callback(img, images, 'left'))
     right_cam.listen(lambda img: camera_callback(img, images, 'right'))
 
-    # 📡 Радары
+    # Радары
     radar_bp = bp_lib.find('sensor.other.radar')
     radar_bp.set_attribute('horizontal_fov', '8')
     radar_bp.set_attribute('vertical_fov', '5')
-    radar_bp.set_attribute('range', '7')
+    radar_bp.set_attribute('range', '6') #7
 
     radar_tf_left = carla.Transform(carla.Location(x=-0.5, y=-1.0, z=1), carla.Rotation(yaw=-150))
     radar_tf_right = carla.Transform(carla.Location(x=-0.5, y=1.0, z=1), carla.Rotation(yaw=150))
@@ -78,7 +80,7 @@ def main():
     radar_left.listen(lambda data: radar_callback(data, radar_states, 'left'))
     radar_right.listen(lambda data: radar_callback(data, radar_states, 'right'))
 
-    print("[*] Нажми Q для выхода.")
+    print("[*] Press Q to exit.")
 
     try:
         while True:
@@ -99,7 +101,7 @@ def main():
             time.sleep(0.03)
 
     finally:
-        print("[*] Завершение...")
+        print("[*] Shutting down...")
         left_cam.stop(), right_cam.stop()
         radar_left.stop(), radar_right.stop()
         left_cam.destroy(), right_cam.destroy()
