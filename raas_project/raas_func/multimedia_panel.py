@@ -12,6 +12,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QImage, QPixmap, QMovie, QFont, QPainter, QPainterPath
 from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation, QPoint
 from camera_360_view import Camera360
+from emergency_call_monitor import EmergencyCallMonitor
 from datetime import datetime
 
 class RAASPanel(QWidget):
@@ -65,6 +66,8 @@ class RAASPanel(QWidget):
             "Mirror Alerts": {"active": True, "proc": None}
         }
         self.modules["Mirror Alerts"]["proc"] = subprocess.Popen(["python", "mirror_alert_toggle.py"])
+
+        self.emergency_monitor = EmergencyCallMonitor(self.world, self.vehicle, self)
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_display)
@@ -419,7 +422,7 @@ class RAASPanel(QWidget):
     def init_functions_screen(self):
         self.functions_screen = QWidget()
         layout = QVBoxLayout(self.functions_screen)
-        layout.setContentsMargins(150, 50, 20, 20)  # отступы
+        layout.setContentsMargins(150, 50, 20, 20)
 
         # === АЛЕРТ подтверждения (по центру)
         self.confirm_box = QWidget(self.functions_screen)
@@ -451,15 +454,15 @@ class RAASPanel(QWidget):
         self.confirmation_timer = QTimer()
         self.confirmation_timer.setSingleShot(True)
         self.confirmation_timer.timeout.connect(self.cancel_disable)
-        self.pending_toggle = None  # (button, callback)
+        self.pending_toggle = None
 
-        # --- Название функции и кнопка рядом ---
-        row = QHBoxLayout()
-        row.setSpacing(20)
+        # --- Первая строка: слепые зоны
+        row1 = QHBoxLayout()
+        row1.setSpacing(20)
 
-        desc = QLabel("Уведомления слепых зон")
-        desc.setStyleSheet("color: white; font-size: 18px;")
-        desc.setFixedWidth(300)
+        desc1 = QLabel("Уведомления слепых зон")
+        desc1.setStyleSheet("color: white; font-size: 18px;")
+        desc1.setFixedWidth(300)
 
         self.mirror_btn = QPushButton("ON")
         self.mirror_btn.setFixedSize(80, 40)
@@ -481,15 +484,48 @@ class RAASPanel(QWidget):
         """)
         self.mirror_btn.clicked.connect(lambda: self.handle_toggle(self.mirror_btn, self.toggle_mirror_alerts))
 
-        row.addWidget(desc)
-        row.addWidget(self.mirror_btn)
-        row.addStretch()
+        row1.addWidget(desc1)
+        row1.addWidget(self.mirror_btn)
+        row1.addStretch()
 
-        layout.addLayout(row)
+        layout.addLayout(row1)
+
+        # --- Вторая строка: аварийный вызов 112
+        row2 = QHBoxLayout()
+        row2.setSpacing(20)
+
+        desc2 = QLabel("Автоматический вызов 112")
+        desc2.setStyleSheet("color: white; font-size: 18px;")
+        desc2.setFixedWidth(300)
+
+        self.emergency_btn = QPushButton("ON")
+        self.emergency_btn.setFixedSize(80, 40)
+        self.emergency_btn.setCheckable(True)
+        self.emergency_btn.setChecked(True)
+        self.emergency_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                font-size: 16px;
+                border-radius: 8px;
+            }
+            QPushButton:checked {
+                background-color: #4CAF50;
+            }
+            QPushButton:!checked {
+                background-color: #777;
+            }
+        """)
+        self.emergency_btn.clicked.connect(lambda: self.handle_toggle(self.emergency_btn, self.toggle_emergency_monitor))
+
+        row2.addWidget(desc2)
+        row2.addWidget(self.emergency_btn)
+        row2.addStretch()
+
+        layout.addLayout(row2)
+
         layout.addStretch()
-
         self.stack.addWidget(self.functions_screen)
-
 
 
     def init_view360_screen(self):
@@ -605,6 +641,31 @@ class RAASPanel(QWidget):
     def _exit_view360_after_front(self):
         self.stack.setCurrentWidget(self.main_screen)
 
+    def toggle_emergency_monitor(self, enabled):
+        if enabled:
+            self.emergency_monitor.monitor_active = True
+            print("[*] Emergency Call Monitor enabled.")
+            self.emergency_btn.setText("ON")
+            self.emergency_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #4CAF50;
+                    color: white;
+                    font-size: 16px;
+                    border-radius: 8px;
+                }
+            """)
+        else:
+            self.emergency_monitor.monitor_active = False
+            print("[*] Emergency Call Monitor disabled.")
+            self.emergency_btn.setText("OFF")
+            self.emergency_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #777;
+                    color: white;
+                    font-size: 16px;
+                    border-radius: 8px;
+                }
+            """)
 
     def create_icon_button(self, text, color):
         btn = QPushButton(text)
@@ -738,6 +799,7 @@ class RAASPanel(QWidget):
             if name == "Mirror Alerts" and mod["proc"]:
                 mod["proc"].terminate()
                 mod["proc"].wait()
+        self.emergency_monitor.stop()
         self.stack.setCurrentWidget(self.exit_screen)
         self.exit_movie_label.movie().start()
         QTimer.singleShot(5000, QApplication.instance().quit)
