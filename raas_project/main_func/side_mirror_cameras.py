@@ -25,7 +25,7 @@ def main():
         vehicle = min(vehicles, key=lambda v: v.id)
 
     if not vehicle:
-        print("❗ Lincoln MKZ 2020 not found. Please spawn it first.")
+        print("Lincoln MKZ 2020 not found. Please spawn it first.")
         return
     print(f"[+] Vehicle found: {vehicle.type_id} (ID {vehicle.id})")
 
