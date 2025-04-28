@@ -47,6 +47,8 @@ class RAASPanel(QWidget):
         self.init_sidebar()
         self.init_top_bar()
         self.init_bottom_bar()
+        self.init_smart_parking_screen()
+        self.init_cruise_control_screen()
 
         self.stack.currentChanged.connect(self.update_interface_visibility)
         self.init_view360_screen()
@@ -367,11 +369,12 @@ class RAASPanel(QWidget):
         app_data = [
             ("Функции", "functions.jpg", lambda: self.stack.setCurrentWidget(self.functions_screen)),
             ("Обзор 360", "cameras.jpg", lambda: self.stack.setCurrentWidget(self.view360_screen)),
+            ("Smart парковка", "smart_parking.jpg", lambda: self.stack.setCurrentWidget(self.app_screens["smart_parking"])),
+            ("Cruise control", "cruise_control.jpg", lambda: self.stack.setCurrentWidget(self.app_screens["cruise_control"])),
             ("Карты", "map.jpg", lambda: self.stack.setCurrentWidget(self.app_screens["map"])),
-            ("Климат Контроль", "climate.jpg", lambda: self.stack.setCurrentWidget(self.app_screens["climate"])),
             ("Музыка", "music.jpg", lambda: self.stack.setCurrentWidget(self.app_screens["music"])),
-            ("Браузер", "browser.jpg", lambda: self.stack.setCurrentWidget(self.app_screens["browser"])),
         ]
+
 
         for i in range(0, len(app_data), 3):
             row = QHBoxLayout()
@@ -791,6 +794,25 @@ class RAASPanel(QWidget):
                         pixmap_sel = QPixmap.fromImage(img_sel).scaled(540, 540, Qt.KeepAspectRatio)
                         self.display_right.setPixmap(pixmap_sel)
 
+    def init_smart_parking_screen(self):
+        self.smart_parking_screen = QWidget()
+        layout = QVBoxLayout(self.smart_parking_screen)
+        layout.setContentsMargins(150, 50, 20, 20)
+        layout.addStretch()
+        self.stack.addWidget(self.smart_parking_screen)
+        self.app_screens["smart_parking"] = self.smart_parking_screen
+
+    def init_cruise_control_screen(self):
+        self.cruise_control_screen = QWidget()
+        layout = QVBoxLayout(self.cruise_control_screen)
+        layout.setContentsMargins(150, 50, 20, 20)
+        layout.addStretch()
+        self.stack.addWidget(self.cruise_control_screen)
+        self.app_screens["cruise_control"] = self.cruise_control_screen
+
+
+
+
     def closeEvent(self, event):
         event.ignore()
         for name, mod in self.modules.items():
@@ -808,8 +830,6 @@ class RAASPanel(QWidget):
         self.app_screens = {}
 
         app_configs = {
-            "browser": {"img": "browser_app.jpg", "x": 150, "y": 20, "w": 1050, "h": 580},
-            "climate": {"img": "climate_app.jpg", "x": 150, "y": 20, "w": 1050, "h": 580},
             "map": {"img": "map_app.jpg", "x": 150, "y": 20, "w": 1050, "h": 580},
             "music": {"img": "music_app.jpg", "x": 150, "y": 20, "w": 1050, "h": 580},
             "settings": {"img": "settings_app.jpg", "x": 150, "y": 20, "w": 1050, "h": 580},
