@@ -122,6 +122,11 @@ class EmergencyCallMonitor(QWidget):
         self.call_duration_timer.stop()
         self.emergency_window.hide()
         self.accident_detected = False
+        self.emergency_label.setText("Обнаружено ДТП!\nВызвать экстренные службы (112)?")
+        self.timer_label.setText("Автоматический вызов через: 60 сек")
+        self.timer_label.show()
+        self.call_button.show()
+        self.cancel_button.setText("Отклонить")
 
     def stop(self):
         self.monitor_active = False
