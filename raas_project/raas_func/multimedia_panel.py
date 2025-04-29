@@ -13,6 +13,7 @@ from PyQt5.QtGui import QImage, QPixmap, QMovie, QFont, QPainter, QPainterPath
 from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation, QPoint
 from camera_360_view import Camera360
 from emergency_call_monitor import EmergencyCallMonitor
+from adaptive_cruise_control import AdaptiveCruiseControl
 from datetime import datetime
 
 class RAASPanel(QWidget):
@@ -62,6 +63,7 @@ class RAASPanel(QWidget):
             print("[-] Машина не найдена.")
             sys.exit()
         self.vehicle = sorted(vehicle_list, key=lambda v: v.id)[0]
+        self.cruise_control = AdaptiveCruiseControl(self.vehicle, self.world)
 
         self.modules = {
             "360 View": {"active": False, "object": None},
@@ -70,6 +72,8 @@ class RAASPanel(QWidget):
         self.modules["Mirror Alerts"]["proc"] = subprocess.Popen(["python", "mirror_alert_toggle.py"])
 
         self.emergency_monitor = EmergencyCallMonitor(self.world, self.vehicle, self)
+
+        self.cruise_control = AdaptiveCruiseControl(self.vehicle, self.world)
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_display)
@@ -770,6 +774,7 @@ class RAASPanel(QWidget):
         self.confirmation_timer.stop()
 
     def update_display(self):
+        self.cruise_control.update()
         if self.modules["360 View"]["active"]:
             surface = self.modules["360 View"]["object"].get_surface()
             if surface:
@@ -793,6 +798,12 @@ class RAASPanel(QWidget):
                         img_sel = QImage(raw_sel, w, h, QImage.Format_RGB888)
                         pixmap_sel = QPixmap.fromImage(img_sel).scaled(540, 540, Qt.KeepAspectRatio)
                         self.display_right.setPixmap(pixmap_sel)
+        if hasattr(self, "cruise_toggle_btn"):
+            if self.cruise_control.enabled:
+                self.cruise_toggle_btn.setText("Cruise ON")
+            else:
+                self.cruise_toggle_btn.setText("Cruise OFF")
+            self.update_cruise_speed_label()
 
     def init_smart_parking_screen(self):
         self.smart_parking_screen = QWidget()
@@ -806,12 +817,65 @@ class RAASPanel(QWidget):
         self.cruise_control_screen = QWidget()
         layout = QVBoxLayout(self.cruise_control_screen)
         layout.setContentsMargins(150, 50, 20, 20)
+
+        title = QLabel("Адаптивный Круиз-Контроль")
+        title.setStyleSheet("color: white; font-size: 24px;")
+        layout.addWidget(title, alignment=Qt.AlignCenter)
+
+        # Отображение текущей скорости круиза
+        self.speed_label = QLabel("Скорость удержания: 0 км/ч")
+        self.speed_label.setStyleSheet("color: white; font-size: 20px;")
+        layout.addWidget(self.speed_label, alignment=Qt.AlignCenter)
+
+        self.cruise_toggle_btn = QPushButton("Cruise OFF")
+        self.cruise_toggle_btn.setFixedSize(200, 60)
+        self.cruise_toggle_btn.clicked.connect(self.toggle_cruise_control)
+        layout.addWidget(self.cruise_toggle_btn, alignment=Qt.AlignCenter)
+
+        # Кнопки регулировки скорости
+        row = QHBoxLayout()
+
+        self.decrease_btn = QPushButton("-5 км/ч")
+        self.decrease_btn.setFixedSize(120, 60)
+        self.decrease_btn.clicked.connect(self.decrease_cruise_speed)
+        row.addWidget(self.decrease_btn)
+
+        self.increase_btn = QPushButton("+5 км/ч")
+        self.increase_btn.setFixedSize(120, 60)
+        self.increase_btn.clicked.connect(self.increase_cruise_speed)
+        row.addWidget(self.increase_btn)
+
+        layout.addLayout(row)
         layout.addStretch()
+
         self.stack.addWidget(self.cruise_control_screen)
         self.app_screens["cruise_control"] = self.cruise_control_screen
 
+    def toggle_cruise_control(self):
+        if not self.cruise_control.enabled:
+            current_speed = self.cruise_control.get_speed(self.vehicle) * 3.6
+            self.cruise_control.set_target_speed(current_speed)
+            self.cruise_control.enable()
+            self.cruise_toggle_btn.setText("Cruise ON")
+        else:
+            self.cruise_control.disable()
+            self.cruise_toggle_btn.setText("Cruise OFF")
+        self.update_cruise_speed_label()
 
+    def increase_cruise_speed(self):
+        self.cruise_control.increase_speed()
+        self.update_cruise_speed_label()
 
+    def decrease_cruise_speed(self):
+        self.cruise_control.decrease_speed()
+        self.update_cruise_speed_label()
+
+    def update_cruise_speed_label(self):
+        if self.cruise_control.enabled:
+            kmh = int(self.cruise_control.target_speed * 3.6)
+            self.speed_label.setText(f"Скорость удержания: {kmh} км/ч")
+        else:
+            self.speed_label.setText("Скорость удержания: 0 км/ч")
 
     def closeEvent(self, event):
         event.ignore()
