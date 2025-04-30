@@ -14,8 +14,8 @@ class EmergencyCallMonitor(QWidget):
         self.accident_detected = False
 
         # Настройки порогов
-        self.speed_drop_threshold = 35.0  # резкое падение скорости (км/ч)
-        self.angle_change_threshold = 75.0  # резкое изменение курса (градусы)
+        self.speed_drop_threshold = 30.0  # резкое падение скорости (км/ч)
+        self.angle_change_threshold = 60.0  # резкое изменение курса (градусы)
 
         self.last_speed = 0.0
         self.last_yaw = vehicle.get_transform().rotation.yaw
@@ -80,10 +80,11 @@ class EmergencyCallMonitor(QWidget):
         speed_drop = self.last_speed - speed
         yaw_change = abs(self.last_yaw - yaw)
 
-        if speed_drop > self.speed_drop_threshold or yaw_change > self.angle_change_threshold:
+        if (speed_drop > self.speed_drop_threshold or yaw_change > self.angle_change_threshold) and self.last_speed > 30:
             if not self.accident_detected:
                 print("[!] Accident detected. Showing emergency call window.")
                 self.show_emergency_window()
+
 
         self.last_speed = speed
         self.last_yaw = yaw

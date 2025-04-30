@@ -14,6 +14,7 @@ from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation, QPoint
 from camera_360_view import Camera360
 from emergency_call_monitor import EmergencyCallMonitor
 from adaptive_cruise_control import AdaptiveCruiseControl
+from driver_fatigue_monitor import DriverFatigueMonitor
 from datetime import datetime
 
 class RAASPanel(QWidget):
@@ -74,6 +75,9 @@ class RAASPanel(QWidget):
         self.emergency_monitor = EmergencyCallMonitor(self.world, self.vehicle, self)
 
         self.cruise_control = AdaptiveCruiseControl(self.vehicle, self.world)
+
+        self.fatigue_monitor = DriverFatigueMonitor(self.vehicle, self)
+        self.fatigue_active = False
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_display)
@@ -563,6 +567,35 @@ class RAASPanel(QWidget):
 
         layout.addLayout(row3)
 
+        # --- Четвёртая строка: Контроль усталости
+        row4 = QHBoxLayout()
+        row4.setSpacing(20)
+
+        desc4 = QLabel("Контроль усталости водителя")
+        desc4.setStyleSheet("color: white; font-size: 18px;")
+        desc4.setFixedWidth(300)
+
+        self.fatigue_btn = QPushButton("OFF")
+        self.fatigue_btn.setFixedSize(80, 40)
+        self.fatigue_btn.setCheckable(True)
+        self.fatigue_btn.setChecked(False)
+        self.fatigue_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #777;
+                color: white;
+                font-size: 16px;
+                border-radius: 8px;
+            }
+            QPushButton:checked {
+                background-color: #4CAF50;
+            }
+        """)
+        self.fatigue_btn.clicked.connect(lambda: self.handle_toggle(self.fatigue_btn, self.toggle_fatigue_monitor))
+
+        row4.addWidget(desc4)
+        row4.addWidget(self.fatigue_btn)
+        row4.addStretch()
+        layout.addLayout(row4)
 
         layout.addStretch()
         self.stack.addWidget(self.functions_screen)
@@ -831,12 +864,32 @@ class RAASPanel(QWidget):
                         img_sel = QImage(raw_sel, w, h, QImage.Format_RGB888)
                         pixmap_sel = QPixmap.fromImage(img_sel).scaled(540, 540, Qt.KeepAspectRatio)
                         self.display_right.setPixmap(pixmap_sel)
+
         if hasattr(self, "cruise_toggle_btn"):
             if self.cruise_control.enabled:
                 self.cruise_toggle_btn.setText("Cruise ON")
             else:
                 self.cruise_toggle_btn.setText("Cruise OFF")
             self.update_cruise_speed_label()
+
+        if self.fatigue_active:
+            control = self.vehicle.get_control()
+            self.fatigue_monitor.update_driver_input(
+                throttle=control.throttle,
+                brake=control.brake,
+                steer=control.steer,
+                lane_keeping_enabled=self.lane_btn.isChecked(),
+                cruise_enabled=self.cruise_control.enabled
+            )
+            lights = self.vehicle.get_light_state()
+            left_signal = bool(lights & carla.VehicleLightState.LeftBlinker)
+            right_signal = bool(lights & carla.VehicleLightState.RightBlinker)
+            if abs(control.steer) > 0.3:
+                self.fatigue_monitor.register_lane_departure(
+                    left_signal_on=left_signal,
+                    right_signal_on=right_signal
+                )
+
 
     def init_smart_parking_screen(self):
         self.smart_parking_screen = QWidget()
@@ -890,6 +943,79 @@ class RAASPanel(QWidget):
                     border-radius: 8px;
                 }
             """)
+
+    def toggle_fatigue_monitor(self, enabled):
+        self.fatigue_active = enabled
+        if enabled:
+            print("[*] Контроль усталости включен.")
+            self.fatigue_btn.setText("ON")
+            self.fatigue_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #4CAF50;
+                    color: white;
+                    font-size: 16px;
+                    border-radius: 8px;
+                }
+            """)
+        else:
+            print("[*] Контроль усталости выключен.")
+            self.fatigue_btn.setText("OFF")
+            self.fatigue_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #777;
+                    color: white;
+                    font-size: 16px;
+                    border-radius: 8px;
+                }
+            """)
+
+
+    def show_fatigue_warning(self, message):
+        if hasattr(self, "_fatigue_alert") and self._fatigue_alert.isVisible():
+            return  # Если уже показано — не дублируем
+
+        self._fatigue_alert = QWidget(self)
+        self._fatigue_alert.setGeometry(460, 260, 500, 200)
+        self._fatigue_alert.setStyleSheet("""
+            background-color: rgba(255, 165, 0, 220);
+            border: 3px solid white;
+            border-radius: 12px;
+        """)
+
+        layout = QVBoxLayout(self._fatigue_alert)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(15)
+
+        title = QLabel("Внимание, усталость")
+        title.setStyleSheet("color: white; font-size: 22px; font-weight: bold;")
+        title.setAlignment(Qt.AlignCenter)
+
+        msg_label = QLabel(message)
+        msg_label.setStyleSheet("color: white; font-size: 16px;")
+        msg_label.setWordWrap(True)
+        msg_label.setAlignment(Qt.AlignCenter)
+
+        ok_btn = QPushButton("Хорошо, продолжить")
+        ok_btn.setFixedSize(180, 40)
+        ok_btn.setStyleSheet("""
+            QPushButton {
+                background-color: white;
+                color: black;
+                font-size: 16px;
+                border-radius: 10px;
+            }
+            QPushButton:hover {
+                background-color: #eee;
+            }
+        """)
+        ok_btn.clicked.connect(lambda: self._fatigue_alert.hide())
+
+        layout.addWidget(title)
+        layout.addWidget(msg_label)
+        layout.addWidget(ok_btn, alignment=Qt.AlignCenter)
+
+        self._fatigue_alert.show()
+
 
 
 
