@@ -531,6 +531,39 @@ class RAASPanel(QWidget):
 
         layout.addLayout(row2)
 
+
+        # --- Третья строка: Lane Keeping Assist
+        row3 = QHBoxLayout()
+        row3.setSpacing(20)
+
+        desc3 = QLabel("Удержание в полосе")
+        desc3.setStyleSheet("color: white; font-size: 18px;")
+        desc3.setFixedWidth(300)
+
+        self.lane_btn = QPushButton("OFF")
+        self.lane_btn.setFixedSize(80, 40)
+        self.lane_btn.setCheckable(True)
+        self.lane_btn.setChecked(False)
+        self.lane_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #777;
+                color: white;
+                font-size: 16px;
+                border-radius: 8px;
+            }
+            QPushButton:checked {
+                background-color: #4CAF50;
+            }
+        """)
+        self.lane_btn.clicked.connect(lambda: self.handle_toggle(self.lane_btn, self.toggle_lane_assist))
+
+        row3.addWidget(desc3)
+        row3.addWidget(self.lane_btn)
+        row3.addStretch()
+
+        layout.addLayout(row3)
+
+
         layout.addStretch()
         self.stack.addWidget(self.functions_screen)
 
@@ -812,6 +845,53 @@ class RAASPanel(QWidget):
         layout.addStretch()
         self.stack.addWidget(self.smart_parking_screen)
         self.app_screens["smart_parking"] = self.smart_parking_screen
+
+    def toggle_lane_assist(self, enabled):
+        # Завершаем custom_control.py, если его окно открыто
+        try:
+            subprocess.run(['taskkill', '/f', '/fi', 'WINDOWTITLE eq RAAS Control Panel'], shell=True)
+        except Exception as e:
+            print(f"[!] Ошибка при завершении custom_control.py: {e}")
+
+        if enabled:
+            BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+            lane_script_path = os.path.join(BASE_DIR, "lane_keeping_assist.py")
+            self.lane_assist_proc = subprocess.Popen(["python", lane_script_path])
+            print("[*] Lane Keeping Assist запущен.")
+            self.lane_btn.setText("ON")
+            self.lane_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #4CAF50;
+                    color: white;
+                    font-size: 16px;
+                    border-radius: 8px;
+                }
+            """)
+        else:
+            if hasattr(self, 'lane_assist_proc') and self.lane_assist_proc:
+                self.lane_assist_proc.terminate()
+                self.lane_assist_proc.wait()
+                print("[*] Lane Keeping Assist остановлен.")
+
+            # Запускаем custom_control.py обратно
+            try:
+                custom_control_path = os.path.abspath(os.path.join("..", "main_func", "custom_control.py"))
+                subprocess.Popen(["python", custom_control_path])
+                print("[*] custom_control.py запущен обратно.")
+            except Exception as e:
+                print(f"[!] Не удалось запустить custom_control.py: {e}")
+
+            self.lane_btn.setText("OFF")
+            self.lane_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #777;
+                    color: white;
+                    font-size: 16px;
+                    border-radius: 8px;
+                }
+            """)
+
+
 
     def init_cruise_control_screen(self):
         self.cruise_control_screen = QWidget()
