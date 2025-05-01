@@ -124,7 +124,7 @@ class Camera360:
         # Задняя камера
         canvas[cy + 150:cy + 150 + bh, cx - bw // 2:cx + bw // 2] = back_warped
 
-        # Левая камера (проверка выхода за левую границу)
+        # Левая камера
         x1_l = cx - 150 - lw
         x2_l = cx - 150
         if x1_l < 0:
@@ -133,7 +133,7 @@ class Camera360:
             x1_l = 0
         canvas[cy - lh // 2:cy + lh // 2, x1_l:x2_l] = left_warped
 
-        # Правая камера (проверка выхода за правую границу)
+        # Правая камера
         x1_r = cx + 150
         x2_r = cx + 150 + rw
         if x2_r > canvas.shape[1]:
