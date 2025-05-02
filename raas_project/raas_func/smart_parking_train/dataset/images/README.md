@@ -1,11 +1,13 @@
-# 📂 Dataset Information
+# 📂 Image Dataset Information
 
-## ⚠️ Custom Dataset Not Included Directly in This Repository
+## ⚠️ Custom Image Dataset Not Included in the Repository (Ignored via .gitignore)
 
-This repository uses a custom dataset created specifically for this project, consisting of **over 13,000 PNG images (~1.5 GB)**.  
-Due to GitHub's repository size limitations, the dataset is **not stored here directly**.
+This repository uses a custom **image dataset** created specifically for this project, consisting of **over 13,000 PNG images (~1.5 GB)**.  
+To avoid exceeding GitHub's storage and performance limits, the dataset folder is **excluded from version control using `.gitignore`**.
 
-Instead, you can **download the full dataset archive** from the **[Releases section](https://github.com/TheAndreyZakharov/Russian-Automotive-Assistance-System/releases)**.  
+As a result, the image files are **not tracked by Git** and are **not included in the repository**, but the code expects them to be present locally at the correct path.
+
+You can **download the full dataset archive** from the **[Releases section](https://github.com/TheAndreyZakharov/Russian-Automotive-Assistance-System/releases)**.  
 Look for the `images.zip` file under the **Assets** section of the latest release.
 
 ### 📥 How to Download
@@ -15,33 +17,44 @@ Go to:
 Releases → Latest → Assets → images.zip
 ```
 
+Then extract the archive to the correct local directory.
+
 ---
 
-## 🔧 Important Note on File Paths
+## 📁 Required File Location
 
-Since the dataset was too large to store directly in the repository, it was **moved to a separate local location** during development.  
-As a result, the file paths in the training script:
+After extracting the archive, make sure that **all PNG images are placed directly into the same folder where this `README.md` file is located**.  
+This folder should contain **only the dataset images**, and no other files or subfolders.
+
+---
+
+## 🔧 File Paths Remain Valid
+
+Although the image files themselves are not committed, **the paths used in the code remain unchanged**.  
+Once you extract the dataset to the correct location, the training script:
 
 ```
 raas_func/smart_parking_train/train_model.py
 ```
 
-may need to be **updated manually** after you download and extract the dataset archive.
+will work **without requiring any path modifications**.
 
----  
+---
 
 <br><br><br><br><br>
 
 ---
 
-# 📂 Информация о датасете
+# 📂 Информация о датасете изображений
 
-## ⚠️ Собственный датасет не включён напрямую в репозиторий
+## ⚠️ Собственный датасет изображений не включён в репозиторий (исключён через .gitignore)
 
-Для этого проекта был создан собственный датасет, включающий **более 13 000 PNG-изображений (~1.5 ГБ)**.  
-Из-за ограничений GitHub по размеру репозитория датасет **не загружен сюда напрямую**.
+Для этого проекта был создан собственный **датасет изображений**, содержащий **более 13 000 PNG-файлов (~1.5 ГБ)**.  
+Чтобы избежать превышения ограничений GitHub по размеру и производительности, папка с изображениями **исключена из контроля версий с помощью `.gitignore`**.
 
-Вместо этого вы можете **скачать полный архив датасета** в разделе **[Releases](https://github.com/TheAndreyZakharov/Russian-Automotive-Assistance-System/releases)**.  
+Таким образом, сами изображения **не отслеживаются Git'ом** и **не включены в репозиторий**, но код всё ещё ожидает, что они будут находиться локально в нужной директории.
+
+Вы можете **скачать полный архив изображений** в разделе **[Releases](https://github.com/TheAndreyZakharov/Russian-Automotive-Assistance-System/releases)**.  
 Файл `images.zip` находится в разделе **Assets** последнего релиза.
 
 ### 📥 Как скачать
@@ -51,17 +64,26 @@ may need to be **updated manually** after you download and extract the dataset a
 Releases → Последний → Assets → images.zip
 ```
 
+Затем распакуйте архив в нужную локальную папку.
+
 ---
 
-## 🔧 Важно: пути к файлам
+## 📁 Расположение изображений
 
-Поскольку датасет получился слишком большим для хранения в репозитории, во время разработки он был **перемещён во внешнюю папку**.  
-Поэтому пути к этим файлам в скрипте обучения:
+После распаковки архива убедитесь, что **все PNG-изображения находятся в той же папке, где расположен этот файл `README.md`**.  
+В этой папке **не должно быть ничего, кроме изображений** — без дополнительных файлов или подкаталогов.
+
+---
+
+## 🔧 Пути к файлам остаются актуальными
+
+Хотя сами изображения не коммитятся в репозиторий, **пути, используемые в коде, остаются прежними**.  
+После распаковки архива скрипт обучения:
 
 ```
 raas_func/smart_parking_train/train_model.py
 ```
 
-могут потребовать **ручного изменения** после загрузки и распаковки архива.
+будет работать **без необходимости менять пути**, если изображения находятся в правильной директории.
 
 ---

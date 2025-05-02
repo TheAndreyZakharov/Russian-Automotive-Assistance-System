@@ -12,7 +12,8 @@ from torchvision import transforms, models
 from torch.optim.lr_scheduler import CosineAnnealingLR
 
 # === Конфигурация ===
-IMAGE_DIR = 'C:/images'
+# IMAGE_DIR = 'C:/images'
+IMAGE_DIR = 'dataset/images'
 CSV_FILE = 'dataset/log.csv'
 MODEL_DIR = 'models'
 BATCH_SIZE = 8
