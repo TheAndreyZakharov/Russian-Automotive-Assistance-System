@@ -1,0 +1,305 @@
+CUDA available: True
+Using GPU: GeForce GTX 960
+
+--- Epoch 1/100 ---
+Train Loss: 0.0505 | Val Loss: 0.0464
+[+] New best model saved
+
+--- Epoch 2/100 ---
+Train Loss: 0.0463 | Val Loss: 0.0468
+[!] No improvement. Patience: 1/10
+
+--- Epoch 3/100 ---
+Train Loss: 0.0442 | Val Loss: 0.0455
+[+] New best model saved
+
+--- Epoch 4/100 ---
+Train Loss: 0.0431 | Val Loss: 0.0441
+[+] New best model saved
+
+--- Epoch 5/100 ---
+Train Loss: 0.0424 | Val Loss: 0.0448
+[!] No improvement. Patience: 1/10
+
+--- Epoch 6/100 ---
+Train Loss: 0.0414 | Val Loss: 0.0460
+[!] No improvement. Patience: 2/10
+
+--- Epoch 7/100 ---
+Train Loss: 0.0398 | Val Loss: 0.0436
+[+] New best model saved
+
+--- Epoch 8/100 ---
+Train Loss: 0.0395 | Val Loss: 0.0468
+[!] No improvement. Patience: 1/10
+
+--- Epoch 9/100 ---
+Train Loss: 0.0384 | Val Loss: 0.0438
+[!] No improvement. Patience: 2/10
+
+--- Epoch 10/100 ---
+Train Loss: 0.0381 | Val Loss: 0.0439
+[!] No improvement. Patience: 3/10
+
+--- Epoch 11/100 ---
+Train Loss: 0.0365 | Val Loss: 0.0376
+[+] New best model saved
+
+--- Epoch 12/100 ---
+Train Loss: 0.0359 | Val Loss: 0.0416
+[!] No improvement. Patience: 1/10
+
+--- Epoch 13/100 ---
+Train Loss: 0.0358 | Val Loss: 0.0384
+[!] No improvement. Patience: 2/10
+
+--- Epoch 14/100 ---
+Train Loss: 0.0350 | Val Loss: 0.0383
+[!] No improvement. Patience: 3/10
+
+--- Epoch 15/100 ---
+Train Loss: 0.0339 | Val Loss: 0.0399
+[!] No improvement. Patience: 4/10
+
+--- Epoch 16/100 ---
+Train Loss: 0.0342 | Val Loss: 0.0383
+[!] No improvement. Patience: 5/10
+
+--- Epoch 17/100 ---
+Train Loss: 0.0328 | Val Loss: 0.0447
+[!] No improvement. Patience: 6/10
+
+--- Epoch 18/100 ---
+Train Loss: 0.0326 | Val Loss: 0.0421
+[!] No improvement. Patience: 7/10
+
+--- Epoch 19/100 ---
+Train Loss: 0.0327 | Val Loss: 0.0374
+[+] New best model saved
+
+--- Epoch 20/100 ---
+Train Loss: 0.0317 | Val Loss: 0.0367
+[+] New best model saved
+
+--- Epoch 21/100 ---
+Train Loss: 0.0306 | Val Loss: 0.0376
+[!] No improvement. Patience: 1/10
+
+--- Epoch 22/100 ---
+Train Loss: 0.0299 | Val Loss: 0.0385
+[!] No improvement. Patience: 2/10
+
+--- Epoch 23/100 ---
+Train Loss: 0.0299 | Val Loss: 0.0386
+[!] No improvement. Patience: 3/10
+
+--- Epoch 24/100 ---
+Train Loss: 0.0300 | Val Loss: 0.0384
+[!] No improvement. Patience: 4/10
+
+--- Epoch 25/100 ---
+Train Loss: 0.0294 | Val Loss: 0.0366
+[+] New best model saved
+
+--- Epoch 26/100 ---
+Train Loss: 0.0284 | Val Loss: 0.0370
+[!] No improvement. Patience: 1/10
+
+--- Epoch 27/100 ---
+Train Loss: 0.0280 | Val Loss: 0.0369
+[!] No improvement. Patience: 2/10
+
+--- Epoch 28/100 ---
+Train Loss: 0.0270 | Val Loss: 0.0352
+[+] New best model saved
+
+--- Epoch 29/100 ---
+Train Loss: 0.0277 | Val Loss: 0.0361
+[!] No improvement. Patience: 1/10
+
+--- Epoch 30/100 ---
+Train Loss: 0.0265 | Val Loss: 0.0347
+[+] New best model saved
+
+--- Epoch 31/100 ---
+Train Loss: 0.0263 | Val Loss: 0.0383
+[!] No improvement. Patience: 1/10
+
+--- Epoch 32/100 ---
+Train Loss: 0.0252 | Val Loss: 0.0366
+[!] No improvement. Patience: 2/10
+
+--- Epoch 33/100 ---
+Train Loss: 0.0251 | Val Loss: 0.0361
+[!] No improvement. Patience: 3/10
+
+--- Epoch 34/100 ---
+Train Loss: 0.0245 | Val Loss: 0.0386
+[!] No improvement. Patience: 4/10
+
+--- Epoch 35/100 ---
+Train Loss: 0.0242 | Val Loss: 0.0362
+[!] No improvement. Patience: 5/10
+
+--- Epoch 36/100 ---
+Train Loss: 0.0234 | Val Loss: 0.0368
+[!] No improvement. Patience: 6/10
+
+--- Epoch 37/100 ---
+Train Loss: 0.0224 | Val Loss: 0.0378
+[!] No improvement. Patience: 7/10
+
+--- Epoch 38/100 ---
+Train Loss: 0.0225 | Val Loss: 0.0351
+[!] No improvement. Patience: 8/10
+
+--- Epoch 39/100 ---
+Train Loss: 0.0227 | Val Loss: 0.0347
+[+] New best model saved
+
+--- Epoch 40/100 ---
+Train Loss: 0.0217 | Val Loss: 0.0340
+[+] New best model saved
+
+--- Epoch 41/100 ---
+Train Loss: 0.0210 | Val Loss: 0.0332
+[+] New best model saved
+
+--- Epoch 42/100 ---
+Train Loss: 0.0210 | Val Loss: 0.0339
+[!] No improvement. Patience: 1/10
+
+--- Epoch 43/100 ---
+Train Loss: 0.0205 | Val Loss: 0.0340
+[!] No improvement. Patience: 2/10
+
+--- Epoch 44/100 ---
+Train Loss: 0.0203 | Val Loss: 0.0360
+[!] No improvement. Patience: 3/10
+
+--- Epoch 45/100 ---
+Train Loss: 0.0200 | Val Loss: 0.0344
+[!] No improvement. Patience: 4/10
+
+--- Epoch 46/100 ---
+Train Loss: 0.0195 | Val Loss: 0.0346
+[!] No improvement. Patience: 5/10
+
+--- Epoch 47/100 ---
+Train Loss: 0.0192 | Val Loss: 0.0350
+[!] No improvement. Patience: 6/10
+
+--- Epoch 48/100 ---
+Train Loss: 0.0185 | Val Loss: 0.0329
+[+] New best model saved
+
+--- Epoch 49/100 ---
+Train Loss: 0.0182 | Val Loss: 0.0348
+[!] No improvement. Patience: 1/10
+
+--- Epoch 50/100 ---
+Train Loss: 0.0184 | Val Loss: 0.0351
+[!] No improvement. Patience: 2/10
+
+--- Epoch 51/100 ---
+Train Loss: 0.0174 | Val Loss: 0.0329
+[+] New best model saved
+
+--- Epoch 52/100 ---
+Train Loss: 0.0177 | Val Loss: 0.0342
+[!] No improvement. Patience: 1/10
+
+--- Epoch 53/100 ---
+Train Loss: 0.0165 | Val Loss: 0.0337
+[!] No improvement. Patience: 2/10
+
+--- Epoch 54/100 ---
+Train Loss: 0.0164 | Val Loss: 0.0357
+[!] No improvement. Patience: 3/10
+
+--- Epoch 55/100 ---
+Train Loss: 0.0157 | Val Loss: 0.0361
+[!] No improvement. Patience: 4/10
+
+--- Epoch 56/100 ---
+Train Loss: 0.0160 | Val Loss: 0.0332
+[!] No improvement. Patience: 5/10
+
+--- Epoch 57/100 ---
+Train Loss: 0.0158 | Val Loss: 0.0344
+[!] No improvement. Patience: 6/10
+
+--- Epoch 58/100 ---
+Train Loss: 0.0155 | Val Loss: 0.0343
+[!] No improvement. Patience: 7/10
+
+--- Epoch 59/100 ---
+Train Loss: 0.0152 | Val Loss: 0.0331
+[!] No improvement. Patience: 8/10
+
+--- Epoch 60/100 ---
+Train Loss: 0.0149 | Val Loss: 0.0339
+[!] No improvement. Patience: 9/10
+
+--- Epoch 61/100 ---
+Train Loss: 0.0148 | Val Loss: 0.0320
+[+] New best model saved
+
+--- Epoch 62/100 ---
+Train Loss: 0.0147 | Val Loss: 0.0336
+[!] No improvement. Patience: 1/10
+
+--- Epoch 63/100 ---
+Train Loss: 0.0140 | Val Loss: 0.0339
+[!] No improvement. Patience: 2/10
+
+--- Epoch 64/100 ---
+Train Loss: 0.0142 | Val Loss: 0.0324
+[!] No improvement. Patience: 3/10
+
+--- Epoch 65/100 ---
+Train Loss: 0.0139 | Val Loss: 0.0314
+[+] New best model saved
+
+--- Epoch 66/100 ---
+Train Loss: 0.0134 | Val Loss: 0.0336
+[!] No improvement. Patience: 1/10
+
+--- Epoch 67/100 ---
+Train Loss: 0.0137 | Val Loss: 0.0334
+[!] No improvement. Patience: 2/10
+
+--- Epoch 68/100 ---
+Train Loss: 0.0132 | Val Loss: 0.0324
+[!] No improvement. Patience: 3/10
+
+--- Epoch 69/100 ---
+Train Loss: 0.0133 | Val Loss: 0.0322
+[!] No improvement. Patience: 4/10
+
+--- Epoch 70/100 ---
+Train Loss: 0.0132 | Val Loss: 0.0332
+[!] No improvement. Patience: 5/10
+
+--- Epoch 71/100 ---
+Train Loss: 0.0125 | Val Loss: 0.0325
+[!] No improvement. Patience: 6/10
+
+--- Epoch 72/100 ---
+Train Loss: 0.0126 | Val Loss: 0.0328
+[!] No improvement. Patience: 7/10
+
+--- Epoch 73/100 ---
+Train Loss: 0.0125 | Val Loss: 0.0339
+[!] No improvement. Patience: 8/10
+
+--- Epoch 74/100 ---
+Train Loss: 0.0125 | Val Loss: 0.0331
+[!] No improvement. Patience: 9/10
+
+--- Epoch 75/100 ---
+Train Loss: 0.0121 | Val Loss: 0.0327
+[!] No improvement. Patience: 10/10
+[!] Early stopping triggered.
+
+[*] Training finished in 1466.70 minutes.
