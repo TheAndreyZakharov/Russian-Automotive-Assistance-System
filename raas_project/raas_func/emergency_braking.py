@@ -1,48 +1,37 @@
 import carla
 import math
 import time
+import threading
+from database_logger import DatabaseLogger
 
-def main():
-    client = carla.Client('localhost', 2000)
-    client.set_timeout(10.0)
+class AutoBrakingSystem:
+    def __init__(self, world, vehicle):
+        self.vehicle = vehicle
+        self.world = world
+        self.lidar_sensor = None
+        self.braking = False
+        self.db = DatabaseLogger()
+        self.stop_time = None
+        self.running = False
 
-    world = client.get_world()
-    vehicle = world.get_actors().filter('vehicle.*')[0]
-
-    vehicle.set_autopilot(False)
-    print(f"Connected to vehicle: {vehicle.type_id}")
-
-    blueprint_library = world.get_blueprint_library()
-
-    lidar_bp = blueprint_library.find('sensor.lidar.ray_cast')
-    lidar_bp.set_attribute('range', '50')
-    lidar_bp.set_attribute('rotation_frequency', '20')
-    lidar_bp.set_attribute('points_per_second', '300000')
-
-    lidar_transform = carla.Transform(carla.Location(x=2.5, z=1.2))
-    lidar_sensor = world.spawn_actor(lidar_bp, lidar_transform, attach_to=vehicle)
-
-    braking = False
-
-    def apply_emergency_brake():
+    def apply_emergency_brake(self):
         control = carla.VehicleControl()
         control.throttle = 0.0
         control.brake = 1.0
-        vehicle.apply_control(control)
+        self.vehicle.apply_control(control)
 
-    def release_brake():
+    def release_brake(self):
         control = carla.VehicleControl()
         control.brake = 0.0
-        vehicle.apply_control(control)
+        self.vehicle.apply_control(control)
 
-    def get_speed():
-        v = vehicle.get_velocity()
+    def get_speed(self):
+        v = self.vehicle.get_velocity()
         return math.sqrt(v.x**2 + v.y**2 + v.z**2) * 3.6
 
-    stop_time = None  # отслеживаем момент полной остановки
-
-    def lidar_callback(data):
-        nonlocal braking, stop_time
+    def lidar_callback(self, data):
+        if not self.running:
+            return
 
         min_distance = float('inf')
         obstacle_detected = False
@@ -56,49 +45,51 @@ def main():
                 if distance < min_distance:
                     min_distance = distance
 
-        speed = get_speed()
+        speed = self.get_speed()
 
         if speed <= 60:
             critical_distance = max(speed / 10, 5)
 
-            if obstacle_detected and min_distance <= critical_distance and not braking:
-                braking = True
-                stop_time = None
+            if obstacle_detected and min_distance <= critical_distance and not self.braking:
+                self.braking = True
+                self.stop_time = None
                 print(f"[!] Obstacle detected at {min_distance:.2f}m | Speed: {speed:.1f} km/h | BRAKING!")
-                apply_emergency_brake()
+                self.apply_emergency_brake()
+                self.db.log_emergency_brake(speed_kmh=speed, distance_m=min_distance)
 
-            elif braking and speed < 0.5:
-                if stop_time is None:
-                    stop_time = time.time()
-                elif time.time() - stop_time > 1.0:
+            elif self.braking and speed < 0.5:
+                if self.stop_time is None:
+                    self.stop_time = time.time()
+                elif time.time() - self.stop_time > 1.0:
                     print("[*] Vehicle fully stopped. Releasing brake.")
-                    braking = False
-                    release_brake()
+                    self.braking = False
+                    self.release_brake()
 
-        elif braking:
+        elif self.braking:
             print("[*] Speed too high, emergency braking disengaged.")
-            braking = False
-            release_brake()
-            stop_time = None
+            self.braking = False
+            self.release_brake()
+            self.stop_time = None
 
+    def start(self):
+        if self.running:
+            return
+        blueprint_library = self.world.get_blueprint_library()
+        lidar_bp = blueprint_library.find('sensor.lidar.ray_cast')
+        lidar_bp.set_attribute('range', '50')
+        lidar_bp.set_attribute('rotation_frequency', '20')
+        lidar_bp.set_attribute('points_per_second', '300000')
 
-    lidar_sensor.listen(lambda data: lidar_callback(data))
+        transform = carla.Transform(carla.Location(x=2.5, z=1.2))
+        self.lidar_sensor = self.world.spawn_actor(lidar_bp, transform, attach_to=self.vehicle)
+        self.lidar_sensor.listen(self.lidar_callback)
+        self.running = True
+        print("[*] Auto braking system enabled.")
 
-    print("Emergency braking system active!")
-
-    try:
-        while True:
-            time.sleep(0.02)
-
-    except KeyboardInterrupt:
-        print("Shutting down.")
-
-    finally:
-        lidar_sensor.stop()
-        lidar_sensor.destroy()
-        release_brake()
-        print("Sensor destroyed, clean exit.")
-
-
-if __name__ == '__main__':
-    main()
+    def stop(self):
+        if self.lidar_sensor:
+            self.lidar_sensor.stop()
+            self.lidar_sensor.destroy()
+            self.release_brake()
+            self.running = False
+            print("[*] Auto braking system disabled.")

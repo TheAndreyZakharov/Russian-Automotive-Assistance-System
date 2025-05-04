@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import time
 import os
+from database_logger import DatabaseLogger
 
 def draw_alert_icon(img, icon, position="left"):
     icon_resized = cv2.resize(icon, (130, 130))
@@ -28,6 +29,7 @@ def radar_callback(detections, state_dict, key):
     state_dict[key] = danger
 
 def main():
+    db = DatabaseLogger()
     client = carla.Client('localhost', 2000)
     client.set_timeout(5.0)
     world = client.get_world()
@@ -99,6 +101,19 @@ def main():
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
             time.sleep(0.03)
+
+            # === ЛОГИРУЕМ ОДИНОЖНЫЕ СРАБАТЫВАНИЯ ===
+            if radar_states['left'] and not getattr(main, "_left_logged", False):
+                db.log_mirror_alert("left")
+                main._left_logged = True
+            elif not radar_states['left']:
+                main._left_logged = False
+
+            if radar_states['right'] and not getattr(main, "_right_logged", False):
+                db.log_mirror_alert("right")
+                main._right_logged = True
+            elif not radar_states['right']:
+                main._right_logged = False
 
     finally:
         print("[*] Shutting down...")

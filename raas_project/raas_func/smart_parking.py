@@ -4,9 +4,11 @@ import cv2
 import time
 import math
 import json
+from database_logger import DatabaseLogger
 
 class SmartParkingModule:
     def __init__(self, world, vehicle):
+        self.db = DatabaseLogger()
         self.world = world
         self.vehicle = vehicle
         self.running = False
@@ -138,11 +140,14 @@ class SmartParkingModule:
         start_time = time.time()
         i = 0
 
+        self.db.log_smart_parking("start", self.PARKING_SIDE)
+
         while i < len(path_data):
             if thread and getattr(thread, "stop_requested", False):
                 print("[!] Parking cancelled by user.")
                 self.vehicle.apply_control(carla.VehicleControl(throttle=0.0, brake=1.0))
                 self.world.tick()
+                self.db.log_smart_parking("stop", self.PARKING_SIDE)
                 return
 
 
@@ -174,6 +179,7 @@ class SmartParkingModule:
 
         self.vehicle.apply_control(carla.VehicleControl(throttle=0.0, brake=1.0))
         self.world.tick()
+        self.db.log_smart_parking("stop", self.PARKING_SIDE)
         print("[*] Parking complete.")
 
     def drive_to_start(self, start_x, start_y, tolerance=1.0):

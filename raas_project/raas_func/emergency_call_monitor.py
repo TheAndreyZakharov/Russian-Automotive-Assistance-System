@@ -3,10 +3,17 @@ import time
 import threading
 from PyQt5.QtWidgets import QLabel, QPushButton, QWidget, QVBoxLayout, QHBoxLayout
 from PyQt5.QtCore import QTimer, Qt
+from database_logger import DatabaseLogger
 
 class EmergencyCallMonitor(QWidget):
     def __init__(self, world, vehicle, multimedia_panel):
         super().__init__()
+
+        self.db = DatabaseLogger()
+        self.trigger_time = None  # Время срабатывания аварии
+        self.trigger_info = {}    # Храним параметры
+
+
         self.world = world
         self.vehicle = vehicle
         self.panel = multimedia_panel
@@ -83,6 +90,16 @@ class EmergencyCallMonitor(QWidget):
         if (speed_drop > self.speed_drop_threshold or yaw_change > self.angle_change_threshold) and self.last_speed > 30:
             if not self.accident_detected:
                 print("[!] Accident detected. Showing emergency call window.")
+                self.trigger_time = time.time()
+                self.trigger_info = {
+                    "speed_before": self.last_speed,
+                    "speed_after": speed,
+                    "speed_drop": self.last_speed - speed,
+                    "yaw_before": self.last_yaw,
+                    "yaw_after": yaw,
+                    "yaw_change": abs(self.last_yaw - yaw),
+                    "location": self.vehicle.get_location()
+                }
                 self.show_emergency_window()
 
 
@@ -112,6 +129,18 @@ class EmergencyCallMonitor(QWidget):
         self.call_duration_timer.start(1000)
         self.call_button.hide()
         self.cancel_button.setText("Сбросить")
+        if self.trigger_time and self.trigger_info:
+            self.db.log_emergency_call(
+                speed_before=self.trigger_info["speed_before"],
+                speed_after=self.trigger_info["speed_after"],
+                speed_drop=self.trigger_info["speed_drop"],
+                yaw_before=self.trigger_info["yaw_before"],
+                yaw_after=self.trigger_info["yaw_after"],
+                yaw_change=self.trigger_info["yaw_change"],
+                duration_sec=time.time() - self.trigger_time,
+                location=self.trigger_info["location"],
+                call_made=True
+            )
 
     def update_call_timer(self):
         self.call_seconds += 1
@@ -128,6 +157,18 @@ class EmergencyCallMonitor(QWidget):
         self.timer_label.show()
         self.call_button.show()
         self.cancel_button.setText("Отклонить")
+        if self.trigger_time and self.trigger_info:
+            self.db.log_emergency_call(
+                speed_before=self.trigger_info["speed_before"],
+                speed_after=self.trigger_info["speed_after"],
+                speed_drop=self.trigger_info["speed_drop"],
+                yaw_before=self.trigger_info["yaw_before"],
+                yaw_after=self.trigger_info["yaw_after"],
+                yaw_change=self.trigger_info["yaw_change"],
+                duration_sec=time.time() - self.trigger_time,
+                location=self.trigger_info["location"],
+                call_made=False
+            )
 
     def stop(self):
         self.monitor_active = False

@@ -16,6 +16,8 @@ from emergency_call_monitor import EmergencyCallMonitor
 from adaptive_cruise_control import AdaptiveCruiseControl
 from driver_fatigue_monitor import DriverFatigueMonitor
 from smart_parking import SmartParkingModule
+from emergency_braking import AutoBrakingSystem
+from database_logger import DatabaseLogger
 from datetime import datetime
 
 class ParkingThread(QThread):
@@ -36,6 +38,9 @@ class RAASPanel(QWidget):
         super().__init__()
         self.setWindowTitle("RAAS Multimedia Panel")
         self.setFixedSize(1280, 720)
+
+        self.db = DatabaseLogger()
+        self.db.log_system_event("start")
 
         BASE_DIR = os.path.dirname(os.path.abspath(__file__))
         PARENT_DIR = os.path.dirname(BASE_DIR)
@@ -97,6 +102,8 @@ class RAASPanel(QWidget):
         self.setFocusPolicy(Qt.StrongFocus)
         self.setFocus()
 
+        self.auto_braking = AutoBrakingSystem(self.world, self.vehicle)
+
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_display)
         self.timer.start(33)
@@ -132,6 +139,30 @@ class RAASPanel(QWidget):
                 self.stop_parking()
                 return True
             return super().eventFilter(obj, event)
+        
+        # === Восстановление состояний из БД
+        states = self.db.get_last_states()
+
+        if states.get("fatigue_monitor") == "ON":
+            self.fatigue_btn.setChecked(True)
+            self.toggle_fatigue_monitor(True)
+
+        if states.get("emergency_monitor") == "OFF":
+            self.emergency_btn.setChecked(False)
+            self.toggle_emergency_monitor(False)
+
+        if states.get("mirror_alerts") == "OFF":
+            self.mirror_btn.setChecked(False)
+            self.toggle_mirror_alerts(False)
+
+        if states.get("lane_assist") == "ON":
+            self.lane_btn.setChecked(True)
+            self.toggle_lane_assist(True)
+
+        if states.get("auto_braking") == "ON":
+            self.brake_btn.setChecked(True)
+            self.toggle_auto_braking(True)
+
 
     def update_interface_visibility(self):
         current = self.stack.currentWidget()
@@ -637,6 +668,36 @@ class RAASPanel(QWidget):
         row4.addStretch()
         layout.addLayout(row4)
 
+        # --- Пятая строка: авто-торможение
+        row5 = QHBoxLayout()
+        row5.setSpacing(20)
+
+        desc5 = QLabel("Автоматическое торможение")
+        desc5.setStyleSheet("color: white; font-size: 18px;")
+        desc5.setFixedWidth(300)
+
+        self.brake_btn = QPushButton("OFF")
+        self.brake_btn.setFixedSize(80, 40)
+        self.brake_btn.setCheckable(True)
+        self.brake_btn.setChecked(False)
+        self.brake_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #777;
+                color: white;
+                font-size: 16px;
+                border-radius: 8px;
+            }
+            QPushButton:checked {
+                background-color: #4CAF50;
+            }
+        """)
+        self.brake_btn.clicked.connect(lambda: self.handle_toggle(self.brake_btn, self.toggle_auto_braking))
+
+        row5.addWidget(desc5)
+        row5.addWidget(self.brake_btn)
+        row5.addStretch()
+        layout.addLayout(row5)
+
         layout.addStretch()
         self.stack.addWidget(self.functions_screen)
 
@@ -755,6 +816,7 @@ class RAASPanel(QWidget):
         self.stack.setCurrentWidget(self.main_screen)
 
     def toggle_emergency_monitor(self, enabled):
+        self.db.log_function_state("emergency_monitor", "ON" if enabled else "OFF")
         if enabled:
             self.emergency_monitor.monitor_active = True
             print("[*] Emergency Call Monitor enabled.")
@@ -813,6 +875,7 @@ class RAASPanel(QWidget):
         self.view_btn.setText(text)
 
     def toggle_mirror_alerts(self, enabled):
+        self.db.log_function_state("mirror_alerts", "ON" if enabled else "OFF")
         mod = self.modules["Mirror Alerts"]
 
         if enabled:
@@ -1043,6 +1106,7 @@ class RAASPanel(QWidget):
             self.stop_parking()
 
     def toggle_lane_assist(self, enabled):
+        self.db.log_function_state("lane_assist", "ON" if enabled else "OFF")
         # Завершаем custom_control.py, если его окно открыто
         try:
             subprocess.run(['taskkill', '/f', '/fi', 'WINDOWTITLE eq RAAS Control Panel'], shell=True)
@@ -1089,6 +1153,7 @@ class RAASPanel(QWidget):
 
     def toggle_fatigue_monitor(self, enabled):
         self.fatigue_active = enabled
+        self.db.log_function_state("fatigue_monitor", "ON" if enabled else "OFF")
         if enabled:
             print("[*] Контроль усталости включен.")
             self.fatigue_btn.setText("ON")
@@ -1138,7 +1203,7 @@ class RAASPanel(QWidget):
         msg_label.setWordWrap(True)
         msg_label.setAlignment(Qt.AlignCenter)
 
-        ok_btn = QPushButton("Хорошо, продолжить")
+        ok_btn = QPushButton("Хорошо")
         ok_btn.setFixedSize(180, 40)
         ok_btn.setStyleSheet("""
             QPushButton {
@@ -1160,6 +1225,32 @@ class RAASPanel(QWidget):
         self._fatigue_alert.show()
 
 
+    def toggle_auto_braking(self, enabled):
+        self.db.log_function_state("auto_braking", "ON" if enabled else "OFF")
+        if enabled:
+            self.auto_braking.start()
+            print("[*] Auto braking system enabled.")
+            self.brake_btn.setText("ON")
+            self.brake_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #4CAF50;
+                    color: white;
+                    font-size: 16px;
+                    border-radius: 8px;
+                }
+            """)
+        else:
+            self.auto_braking.stop()
+            print("[*] Auto braking system disabled.")
+            self.brake_btn.setText("OFF")
+            self.brake_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #777;
+                    color: white;
+                    font-size: 16px;
+                    border-radius: 8px;
+                }
+            """)
 
 
     def init_cruise_control_screen(self):
@@ -1237,6 +1328,7 @@ class RAASPanel(QWidget):
         self.emergency_monitor.stop()
         self.stack.setCurrentWidget(self.exit_screen)
         self.exit_movie_label.movie().start()
+        self.db.log_system_event("stop")
         QTimer.singleShot(5000, QApplication.instance().quit)
 
     def init_app_screens(self):

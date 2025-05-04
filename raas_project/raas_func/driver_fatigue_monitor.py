@@ -1,9 +1,13 @@
 import carla
 import time
 import sys
+from database_logger import DatabaseLogger
 
 class DriverFatigueMonitor:
     def __init__(self, vehicle, window=None):
+
+        self.db = DatabaseLogger()
+
         self.vehicle = vehicle
         self.window = window  # GUI окно для вывода предупреждений
 
@@ -36,26 +40,26 @@ class DriverFatigueMonitor:
         # Отсутствие действий при движении
         if self.vehicle_is_moving(throttle, brake):
             if now - self.last_driver_input_time > 60:
-                self._warn("Отсутствие действий водителя более 60 секунд. Сделайте паузу.")
+                self._warn("Отсутствие действий водителя более 60 секунд. Сделайте паузу.", "no_input")
                 self.last_driver_input_time = now
         elif cruise_enabled and lane_keeping_enabled:
             if now - self.last_driver_input_time > 60:
-                self._warn("Круиз и удержание полосы активны. Пожалуйста, держите руки на руле.")
+                self._warn("Круиз и удержание полосы активны. Пожалуйста, держите руки на руле.", "autonomy")
                 self.last_driver_input_time = now
 
         # Длительное вождение
         if now - self.trip_start_time > 100 * 60:
             if now - self.last_warning_time > self.warning_interval:
-                self._warn("Вы ведёте более 100 минут. Сделайте перерыв.")
+                self._warn("Вы ведёте более 100 минут. Сделайте перерыв.", "long_drive")
                 self.last_warning_time = now
 
         # Сработки по статистике
         if self.rapid_steering_events >= self.max_rapid_steering:
-            self._warn("Частые резкие повороты рулём. Возможна усталость.")
+            self._warn("Частые резкие повороты рулём. Возможна усталость.", "steering")
             self.rapid_steering_events = 0
 
         if self.lane_departure_count >= self.max_lane_departures:
-            self._warn("Вы часто пересекаете разметку без поворотника. Сделайте паузу.")
+            self._warn("Вы часто пересекаете разметку без поворотника. Сделайте паузу.", "lane_departure")
             self.lane_departure_count = 0
 
     def register_lane_departure(self, left_signal_on, right_signal_on):
@@ -65,7 +69,8 @@ class DriverFatigueMonitor:
     def vehicle_is_moving(self, throttle, brake):
         return throttle > 0 or brake > 0
 
-    def _warn(self, message):
+    def _warn(self, message, category):
+        self.db.log_fatigue_warning(message, category)
         if self.window:
             self.window.show_fatigue_warning(message)
         else:
@@ -80,7 +85,7 @@ class DriverFatigueMonitor:
         self.last_warning_time = 0
 
 
-# Тестирование (если нужно)
+# Тестирование 
 def main():
     print("[*] Driver Fatigue Monitor started. Нажмите Ctrl+C для выхода.")
     client = carla.Client('localhost', 2000)

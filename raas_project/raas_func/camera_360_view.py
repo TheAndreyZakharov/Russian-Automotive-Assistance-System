@@ -117,7 +117,6 @@ class Camera360:
         rh, rw = right_warped.shape[:2]
 
         # === Вставка в канвас
-
         # Передняя камера
         canvas[cy - 150 - fh:cy - 150, cx - fw // 2:cx + fw // 2] = front_warped
 
