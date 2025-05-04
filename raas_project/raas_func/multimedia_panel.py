@@ -519,14 +519,22 @@ class RAASPanel(QWidget):
 
     def init_functions_screen(self):
         self.functions_screen = QWidget()
-        layout = QVBoxLayout(self.functions_screen)
-        layout.setContentsMargins(150, 50, 20, 20)
+        main_layout = QHBoxLayout(self.functions_screen)
+        main_layout.setContentsMargins(150, 50, 150, 20)
+        main_layout.setSpacing(100)  # отступ между двумя колонками
+
+        left_column = QVBoxLayout()
+        left_column.setSpacing(20)
+
+        right_column = QVBoxLayout()
+        right_column.setSpacing(20)
 
         # === АЛЕРТ подтверждения (по центру)
-        self.confirm_box = QWidget(self.functions_screen)
+        self.confirm_box = QWidget(self)
         self.confirm_box.setStyleSheet("background-color: rgba(0,0,0,180); border: 2px solid white; border-radius: 10px;")
-        self.confirm_box.setGeometry(400, 250, 480, 120)
+        self.confirm_box.setGeometry(470, 250, 480, 120)
         self.confirm_box.hide()
+        self.confirm_box.raise_()
 
         vbox = QVBoxLayout(self.confirm_box)
         vbox.setContentsMargins(20, 20, 20, 20)
@@ -586,7 +594,7 @@ class RAASPanel(QWidget):
         row1.addWidget(self.mirror_btn)
         row1.addStretch()
 
-        layout.addLayout(row1)
+        left_column.addLayout(row1)
 
         # --- Вторая строка: аварийный вызов 112
         row2 = QHBoxLayout()
@@ -620,7 +628,7 @@ class RAASPanel(QWidget):
         row2.addWidget(self.emergency_btn)
         row2.addStretch()
 
-        layout.addLayout(row2)
+        left_column.addLayout(row2)
 
 
         # --- Третья строка: Lane Keeping Assist
@@ -652,7 +660,7 @@ class RAASPanel(QWidget):
         row3.addWidget(self.lane_btn)
         row3.addStretch()
 
-        layout.addLayout(row3)
+        left_column.addLayout(row3)
 
         # --- Четвёртая строка: Контроль усталости
         row4 = QHBoxLayout()
@@ -682,7 +690,9 @@ class RAASPanel(QWidget):
         row4.addWidget(desc4)
         row4.addWidget(self.fatigue_btn)
         row4.addStretch()
-        layout.addLayout(row4)
+
+        left_column.addLayout(row4)
+
 
         # --- Пятая строка: авто-торможение
         row5 = QHBoxLayout()
@@ -712,9 +722,10 @@ class RAASPanel(QWidget):
         row5.addWidget(desc5)
         row5.addWidget(self.brake_btn)
         row5.addStretch()
-        layout.addLayout(row5)
+        left_column.addLayout(row5)
 
-        layout.addStretch()
+        main_layout.addLayout(left_column)
+        main_layout.addLayout(right_column)
         self.stack.addWidget(self.functions_screen)
 
 
@@ -1288,6 +1299,17 @@ class RAASPanel(QWidget):
 
         self.cruise_toggle_btn = QPushButton("Cruise OFF")
         self.cruise_toggle_btn.setFixedSize(200, 60)
+        self.cruise_toggle_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #777;
+                color: white;
+                font-size: 16px;
+                border-radius: 8px;
+            }
+            QPushButton:hover {
+                background-color: #888;
+            }
+        """)
         self.cruise_toggle_btn.clicked.connect(self.toggle_cruise_control)
         layout.addWidget(self.cruise_toggle_btn, alignment=Qt.AlignCenter)
 
@@ -1296,13 +1318,37 @@ class RAASPanel(QWidget):
 
         self.decrease_btn = QPushButton("-5 км/ч")
         self.decrease_btn.setFixedSize(120, 60)
+        self.decrease_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #777;
+                color: white;
+                font-size: 16px;
+                border-radius: 8px;
+            }
+            QPushButton:hover {
+                background-color: #888;
+            }
+        """)
         self.decrease_btn.clicked.connect(self.decrease_cruise_speed)
-        row.addWidget(self.decrease_btn)
 
         self.increase_btn = QPushButton("+5 км/ч")
         self.increase_btn.setFixedSize(120, 60)
+        self.increase_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #777;
+                color: white;
+                font-size: 16px;
+                border-radius: 8px;
+            }
+            QPushButton:hover {
+                background-color: #888;
+            }
+        """)
         self.increase_btn.clicked.connect(self.increase_cruise_speed)
+
+        row.addWidget(self.decrease_btn)
         row.addWidget(self.increase_btn)
+        layout.addLayout(row)
 
         layout.addLayout(row)
         layout.addStretch()
@@ -1320,6 +1366,27 @@ class RAASPanel(QWidget):
             self.cruise_control.disable()
             self.cruise_toggle_btn.setText("Cruise OFF")
         self.update_cruise_speed_label()
+
+        if self.cruise_control.enabled:
+            self.cruise_toggle_btn.setText("Cruise ON")
+            self.cruise_toggle_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #4CAF50;
+                    color: white;
+                    font-size: 16px;
+                    border-radius: 8px;
+                }
+            """)
+        else:
+            self.cruise_toggle_btn.setText("Cruise OFF")
+            self.cruise_toggle_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #777;
+                    color: white;
+                    font-size: 16px;
+                    border-radius: 8px;
+                }
+            """)
 
     def increase_cruise_speed(self):
         self.cruise_control.increase_speed()
