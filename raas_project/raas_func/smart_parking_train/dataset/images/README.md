@@ -1,4 +1,4 @@
-# 📂 Image Dataset Information
+# 📸 Image Dataset Information
 
 ## ⚠️ Custom Image Dataset Not Included in the Repository (Ignored via .gitignore)
 
@@ -45,7 +45,7 @@ will work **without requiring any path modifications**.
 
 ---
 
-# 📂 Информация о датасете изображений
+# 📸 Информация о датасете изображений
 
 ## ⚠️ Собственный датасет изображений не включён в репозиторий (исключён через .gitignore)
 

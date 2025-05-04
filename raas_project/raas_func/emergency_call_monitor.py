@@ -113,6 +113,13 @@ class EmergencyCallMonitor(QWidget):
         self.emergency_window.show()
         self.auto_call_timer.start(1000)  # каждую секунду обновляем обратный отсчет
 
+        # === ЗАПУСК ЗАПИСИ ===
+        if hasattr(self.panel, "modules") and self.panel.modules["360 View"]["object"]:
+            cam360 = self.panel.modules["360 View"]["object"]
+            if hasattr(cam360, "recorder"):
+                cam360.recorder.trigger_event_recording()
+                print("[*] Video recording triggered due to accident event.")
+
     def update_auto_call_timer(self):
         self.auto_call_seconds_left -= 1
         if self.auto_call_seconds_left > 0:

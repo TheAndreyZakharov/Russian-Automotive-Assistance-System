@@ -1,5 +1,7 @@
 raas_project/raas_func/smart_parking_train/dataset/images/*
 raas_project/raas_func/smart_parking_train/models/*
+raas_project/raas_func/recordings/*
 
 !raas_project/raas_func/smart_parking_train/dataset/images/README.md
 !raas_project/raas_func/smart_parking_train/models/README.md
+!raas_project/raas_func/recordings/README.md

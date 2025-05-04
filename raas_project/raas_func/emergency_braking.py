@@ -5,7 +5,7 @@ import threading
 from database_logger import DatabaseLogger
 
 class AutoBrakingSystem:
-    def __init__(self, world, vehicle):
+    def __init__(self, world, vehicle, panel=None):
         self.vehicle = vehicle
         self.world = world
         self.lidar_sensor = None
@@ -56,6 +56,13 @@ class AutoBrakingSystem:
                 print(f"[!] Obstacle detected at {min_distance:.2f}m | Speed: {speed:.1f} km/h | BRAKING!")
                 self.apply_emergency_brake()
                 self.db.log_emergency_brake(speed_kmh=speed, distance_m=min_distance)
+
+                # === ЗАПУСК ЗАПИСИ ===
+                if hasattr(self, "panel") and hasattr(self.panel, "modules"):
+                    mod = self.panel.modules.get("360 View", {})
+                    if mod.get("object") and hasattr(mod["object"], "recorder"):
+                        mod["object"].recorder.trigger_event_recording()
+                        print("[*] Video recording triggered due to emergency braking.")
 
             elif self.braking and speed < 0.5:
                 if self.stop_time is None:

@@ -3,14 +3,16 @@ import numpy as np
 import pygame
 import cv2
 import os
+from camera_recorder import CameraBufferRecorder
 
 class Camera360:
-    def __init__(self, world, vehicle):
+    def __init__(self, world, vehicle, recorder=None):
         self.world = world
         self.vehicle = vehicle
         self.image_data = {'front': None, 'back': None, 'left': None, 'right': None}
         self.cameras = []
         self.car_img_path = os.path.join(os.path.dirname(__file__), "..", "static", "photos", "car_above.jpg")
+        self.recorder = recorder
 
     def camera_callback(self, image, key):
         array = np.frombuffer(image.raw_data, dtype=np.uint8)
@@ -19,6 +21,9 @@ class Camera360:
         rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
         surface = pygame.surfarray.make_surface(rgb.swapaxes(0, 1))
         self.image_data[key] = surface
+        array_rgb = cv2.cvtColor(pygame.surfarray.array3d(surface).swapaxes(0, 1), cv2.COLOR_RGB2BGR)
+        if self.recorder:
+            self.recorder.add_frame(key, array_rgb)
 
     def start(self):
         blueprint_library = self.world.get_blueprint_library()

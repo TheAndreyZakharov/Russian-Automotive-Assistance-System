@@ -18,6 +18,7 @@ from driver_fatigue_monitor import DriverFatigueMonitor
 from smart_parking import SmartParkingModule
 from emergency_braking import AutoBrakingSystem
 from database_logger import DatabaseLogger
+from camera_recorder import CameraBufferRecorder
 from datetime import datetime
 
 class ParkingThread(QThread):
@@ -85,8 +86,15 @@ class RAASPanel(QWidget):
         self.vehicle = sorted(vehicle_list, key=lambda v: v.id)[0]
         self.cruise_control = AdaptiveCruiseControl(self.vehicle, self.world)
 
+        self.recorder = CameraBufferRecorder(
+            camera_keys=["front", "back", "left", "right"], 
+            buffer_seconds=60, 
+            post_seconds=60
+        )
+        self.cam360 = Camera360(self.world, self.vehicle, recorder=self.recorder)
+        self.cam360.start()
         self.modules = {
-            "360 View": {"active": False, "object": None},
+            "360 View": {"active": True, "object": self.cam360},
             "Mirror Alerts": {"active": True, "proc": None}
         }
         self.modules["Mirror Alerts"]["proc"] = subprocess.Popen(["python", "mirror_alert_toggle.py"])
@@ -102,7 +110,7 @@ class RAASPanel(QWidget):
         self.setFocusPolicy(Qt.StrongFocus)
         self.setFocus()
 
-        self.auto_braking = AutoBrakingSystem(self.world, self.vehicle)
+        self.auto_braking = AutoBrakingSystem(self.world, self.vehicle, self)
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_display)
@@ -166,7 +174,7 @@ class RAASPanel(QWidget):
 
     def update_interface_visibility(self):
         current = self.stack.currentWidget()
-        # Прячем интерфейс на заставках
+
         if current in [self.loading_screen, self.exit_screen, self.welcome_screen]:
             self.sidebar.hide()
             self.top_bar.hide()
@@ -175,18 +183,26 @@ class RAASPanel(QWidget):
             self.sidebar.show()
             self.top_bar.show()
             self.bottom_bar.show()
-        # Автовключение 360 камеры при заходе на экран обзора
-        if current == self.view360_screen:
-            mod = self.modules["360 View"]
-            if not mod["active"]:
-                mod["object"] = Camera360(self.world, self.vehicle)
-                mod["object"].start()
-                mod["active"] = True
-        # Автовыключение 360 камеры при выходе из экрана обзора
-        elif self.modules["360 View"]["active"]:
-            self.modules["360 View"]["object"].stop()
-            self.modules["360 View"]["object"] = None
-            self.modules["360 View"]["active"] = False
+
+        # === Управление камерами 360 ===
+        if self.should_cam360_be_always_on():
+            if not self.modules["360 View"]["active"]:
+                self.modules["360 View"]["object"] = self.cam360
+                self.modules["360 View"]["object"].start()
+                self.modules["360 View"]["active"] = True
+        else:
+            # Если мы на экране обзора — включаем камеры
+            if current == self.view360_screen:
+                if not self.modules["360 View"]["active"]:
+                    self.modules["360 View"]["object"] = self.cam360
+                    self.modules["360 View"]["object"].start()
+                    self.modules["360 View"]["active"] = True
+            else:
+                # Если не на экране и не требуется по условиям — выключаем
+                if self.modules["360 View"]["active"]:
+                    self.modules["360 View"]["object"].stop()
+                    self.modules["360 View"]["object"] = None
+                    self.modules["360 View"]["active"] = False
 
 
     def init_top_bar(self):
@@ -857,12 +873,14 @@ class RAASPanel(QWidget):
                 background-color: #555;
             }}
         """)
+        self.update_interface_visibility()
         return btn
+
 
     def toggle_360_view(self):
         mod = self.modules["360 View"]
         if not mod["active"]:
-            mod["object"] = Camera360(self.world, self.vehicle)
+            mod["object"] = self.cam360
             mod["object"].start()
             mod["active"] = True
             text = "360 View [ON]"
@@ -1251,6 +1269,7 @@ class RAASPanel(QWidget):
                     border-radius: 8px;
                 }
             """)
+        self.update_interface_visibility()
 
 
     def init_cruise_control_screen(self):
@@ -1316,6 +1335,9 @@ class RAASPanel(QWidget):
             self.speed_label.setText(f"Скорость удержания: {kmh} км/ч")
         else:
             self.speed_label.setText("Скорость удержания: 0 км/ч")
+
+    def should_cam360_be_always_on(self):
+        return self.emergency_btn.isChecked() or self.brake_btn.isChecked()
 
     def closeEvent(self, event):
         event.ignore()
