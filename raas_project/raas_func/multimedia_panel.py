@@ -7,15 +7,29 @@ import cv2
 import numpy as np
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QPushButton, QLabel,
-    QVBoxLayout, QHBoxLayout, QStackedWidget, QFrame, QSlider, QCheckBox
+    QVBoxLayout, QHBoxLayout, QStackedWidget, QFrame, QSlider
 )
-from PyQt5.QtGui import QImage, QPixmap, QMovie, QFont, QPainter, QPainterPath
-from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation, QPoint
+from PyQt5.QtGui import QImage, QPixmap, QMovie, QPainter, QPainterPath
+from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation, QPoint, QThread, pyqtSignal
 from camera_360_view import Camera360
 from emergency_call_monitor import EmergencyCallMonitor
 from adaptive_cruise_control import AdaptiveCruiseControl
 from driver_fatigue_monitor import DriverFatigueMonitor
+from smart_parking import SmartParkingModule
 from datetime import datetime
+
+class ParkingThread(QThread):
+    finished = pyqtSignal()
+
+    def __init__(self, smart_parking_module):
+        super().__init__()
+        self.smart_parking_module = smart_parking_module
+        self.stop_requested = False
+
+    def run(self):
+        self.smart_parking_module.execute_parking(thread=self)
+        self.finished.emit()
+
 
 class RAASPanel(QWidget):
     def __init__(self):
@@ -79,6 +93,10 @@ class RAASPanel(QWidget):
         self.fatigue_monitor = DriverFatigueMonitor(self.vehicle, self)
         self.fatigue_active = False
 
+        self.smart_parking_module = SmartParkingModule(self.world, self.vehicle)
+        self.setFocusPolicy(Qt.StrongFocus)
+        self.setFocus()
+
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_display)
         self.timer.start(33)
@@ -92,6 +110,28 @@ class RAASPanel(QWidget):
         self.reverse_check_timer.start(500)  # каждые полсекунды
 
         QTimer.singleShot(7000, lambda: self.stack.setCurrentWidget(self.welcome_screen))
+
+        self.setFocusPolicy(Qt.StrongFocus)
+        self.setFocus()
+        QTimer.singleShot(1000, self.setFocus)
+
+        def keyPressEvent(self, event):
+            print(f"[DEBUG] Key pressed: {event.key()}")
+            if event.key() == Qt.Key_P:
+                self.stop_parking()
+
+        def stop_parking(self):
+            if hasattr(self, 'parking_thread') and self.parking_thread.isRunning():
+                self.parking_thread.stop_requested = True
+                print("[*] Парковка отменена пользователем через STOP или клавишу P")
+
+        self.installEventFilter(self)
+        def eventFilter(self, obj, event):
+            if event.type() == event.KeyPress and event.key() == Qt.Key_P:
+                print("[GLOBAL] Key P pressed")
+                self.stop_parking()
+                return True
+            return super().eventFilter(obj, event)
 
     def update_interface_visibility(self):
         current = self.stack.currentWidget()
@@ -890,14 +930,117 @@ class RAASPanel(QWidget):
                     right_signal_on=right_signal
                 )
 
+        if self.stack.currentWidget() == self.app_screens["smart_parking"]:
+            images = self.smart_parking_module.get_processed_images()
+            for name, img in images.items():
+                if name in self.parking_cam_labels:
+                    h, w, ch = img.shape
+                    bytes_per_line = ch * w
+                    qimg = QImage(img.data, w, h, bytes_per_line, QImage.Format_RGB888)
+                    pixmap = QPixmap.fromImage(qimg)
+                    self.parking_cam_labels[name].setPixmap(pixmap)
+
+        if self.stack.currentWidget() == self.app_screens["smart_parking"]:
+            images = self.smart_parking_module.get_processed_images()
+            for name, img in images.items():
+                if name in self.parking_cam_labels:
+                    rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                    h, w, ch = rgb.shape
+                    qimg = QImage(rgb.data, w, h, ch * w, QImage.Format_RGB888)
+                    self.parking_cam_labels[name].setPixmap(QPixmap.fromImage(qimg))
+
+            if self.smart_parking_module.VALID_PARKING_POINT:
+                self.park_button.setText("Выполнить парковку")
+                self.park_button.setEnabled(True)
+            else:
+                self.park_button.setText("Поиск места...")
+                self.park_button.setEnabled(False)
+
 
     def init_smart_parking_screen(self):
         self.smart_parking_screen = QWidget()
-        layout = QVBoxLayout(self.smart_parking_screen)
-        layout.setContentsMargins(150, 50, 20, 20)
-        layout.addStretch()
+        self.smart_parking_screen.setStyleSheet("background-color: transparent;")
+
+        self.parking_cam_labels = {}
+        cam_w, cam_h = 320, 240
+
+        # === Контейнер для размещения камер ===
+        camera_zone = QWidget(self.smart_parking_screen)
+        camera_zone.setGeometry(150, 50, 1100, 700)  # x, y, w, h
+
+        def create_cam_label(name, x, y):
+            label = QLabel(camera_zone)
+            label.setGeometry(x, y, cam_w, cam_h)
+            label.setStyleSheet("background-color: black; border: 2px solid white;")
+            label.setAlignment(Qt.AlignCenter)
+            label.setText(f"{name.upper()}")
+            self.parking_cam_labels[name] = label
+
+        create_cam_label("front", 380, 0)
+        create_cam_label("back", 380, cam_h)
+        create_cam_label("left", 60, cam_h/2)
+        create_cam_label("right", 60 + (2 * cam_w), cam_h/2)
+
+        self.park_button = QPushButton("Поиск места...", self.smart_parking_screen)
+        self.park_button.setEnabled(False)
+        self.park_button.setFixedSize(280, 60)
+
+        screen_width = 1280
+        btn_x = int((screen_width - 280) / 2) + 50
+        btn_y = 720 - 170
+        self.park_button.move(btn_x, btn_y)
+
+        self.park_button.setStyleSheet("""
+            QPushButton {
+                font-size: 18px;
+                background-color: #777;
+                color: white;
+                border-radius: 10px;
+            }
+            QPushButton:enabled {
+                background-color: #4CAF50;
+            }
+        """)
+        self.park_button.clicked.connect(self.start_parking_thread)
+
         self.stack.addWidget(self.smart_parking_screen)
         self.app_screens["smart_parking"] = self.smart_parking_screen
+
+        self.stop_button = QPushButton("Стоп", self.smart_parking_screen)
+        self.stop_button.setFixedSize(100, 60)
+        self.stop_button.move(btn_x + 300, btn_y)
+        self.stop_button.setStyleSheet("""
+            QPushButton {
+                font-size: 16px;
+                background-color: #b22222;
+                color: white;
+                border-radius: 10px;
+            }
+        """)
+        self.stop_button.clicked.connect(self.stop_parking)
+        self.stop_button.hide()
+
+    def start_parking_thread(self):
+        self.park_button.setText("Идет парковка...")
+        self.park_button.setEnabled(False)
+        self.stop_button.show()
+
+        self.parking_thread = ParkingThread(self.smart_parking_module)
+        self.parking_thread.finished.connect(self.on_parking_finished)
+        self.parking_thread.start()
+
+    def on_parking_finished(self):
+        self.park_button.setText("Поиск места..." if not self.smart_parking_module.VALID_PARKING_POINT else "Выполнить парковку")
+        self.park_button.setEnabled(True)
+
+    def stop_parking(self):
+        if hasattr(self, 'parking_thread') and self.parking_thread.isRunning():
+            self.parking_thread.stop_requested = True  # кастомный флаг
+            print("[*] Парковка отменена пользователем.")
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_P:
+            self.stop_parking()
 
     def toggle_lane_assist(self, enabled):
         # Завершаем custom_control.py, если его окно открыто

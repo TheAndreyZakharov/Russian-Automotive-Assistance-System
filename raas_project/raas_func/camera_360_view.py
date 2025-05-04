@@ -70,7 +70,7 @@ class Camera360:
             return perspective_warp(img, src, dst, (w, h))
 
         # === Машина сверху ===
-        car = cv2.imread(self.car_img_path)
+        car = cv2.cvtColor(cv2.imread(self.car_img_path), cv2.COLOR_BGR2RGB)
         car = cv2.resize(car, (300, 150))
         car = cv2.rotate(car, cv2.ROTATE_90_COUNTERCLOCKWISE)
 
