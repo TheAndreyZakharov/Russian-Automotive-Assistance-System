@@ -8,7 +8,8 @@ def camera_callback(image, data_dict, key):
     array = np.frombuffer(image.raw_data, dtype=np.uint8)
     array = np.reshape(array, (image.height, image.width, 4))
     image_rgb = array[:, :, :3]  # Убираем альфа-канал
-    data_dict[key] = image_rgb
+    mirrored = cv2.flip(image_rgb, 1)
+    data_dict[key] = mirrored
 
 def main():
     client = carla.Client('localhost', 2000)
@@ -36,8 +37,8 @@ def main():
     camera_bp.set_attribute('fov', '90')
 
     # Точки размещения камер (относительно автомобиля)
-    transform_left = carla.Transform(carla.Location(x=0.75, y=-0.9, z=1.1), carla.Rotation(yaw=180))
-    transform_right = carla.Transform(carla.Location(x=0.75, y=0.9, z=1.1), carla.Rotation(yaw=180))
+    transform_left = carla.Transform(carla.Location(x=0.65, y=-0.9, z=1.1), carla.Rotation(yaw=-150))
+    transform_right = carla.Transform(carla.Location(x=0.65, y=0.9, z=1.1), carla.Rotation(yaw=150))
     #x=0.8, y=-1.0, z=1.5, -150
     #x=0.8, y=1.0, z=1.5, =150
 

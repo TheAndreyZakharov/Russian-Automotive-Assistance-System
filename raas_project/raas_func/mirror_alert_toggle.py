@@ -55,8 +55,8 @@ def main():
     cam_bp.set_attribute('image_size_x', '640')
     cam_bp.set_attribute('image_size_y', '480')
     cam_bp.set_attribute('fov', '90')
-    cam_tf_left = carla.Transform(carla.Location(x=0.75, y=-0.9, z=1.1), carla.Rotation(yaw=180))
-    cam_tf_right = carla.Transform(carla.Location(x=0.75, y=0.9, z=1.1), carla.Rotation(yaw=180))
+    cam_tf_left = carla.Transform(carla.Location(x=0.65, y=-0.9, z=1.1), carla.Rotation(yaw=-150))
+    cam_tf_right = carla.Transform(carla.Location(x=0.65, y=0.9, z=1.1), carla.Rotation(yaw=150))
     #x=0.8, y=-1.0, z=1.5, -150
     #x=0.8, y=1.0, z=1.5, =150
 
@@ -87,8 +87,8 @@ def main():
     try:
         while True:
             if images['left'] is not None and images['right'] is not None:
-                left_img = images['left'].copy()
-                right_img = images['right'].copy()
+                left_img = cv2.flip(images['left'].copy(), 1)
+                right_img = cv2.flip(images['right'].copy(), 1)
 
                 if radar_states['left']:
                     draw_alert_icon(left_img, icon, position='left')
@@ -102,7 +102,7 @@ def main():
                 break
             time.sleep(0.03)
 
-            # === ЛОГИРУЕМ ОДИНОЖНЫЕ СРАБАТЫВАНИЯ ===
+            # === ЛОГИРУЕМ ОДИНОЧНЫЕ СРАБАТЫВАНИЯ ===
             if radar_states['left'] and not getattr(main, "_left_logged", False):
                 db.log_mirror_alert("left")
                 main._left_logged = True
