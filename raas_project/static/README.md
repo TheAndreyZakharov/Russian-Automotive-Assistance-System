@@ -3,11 +3,16 @@
 ## 🖼️ Images, GIFs, and Videos Used in the Driver Assistance System
 
 This folder contains **all multimedia resources** used or prepared for integration into the system interface and functionality.  
-It includes UI illustrations, visual aids, interface animations, and additional media.
+It includes UI illustrations, visual aids, interface animations, media archives, and documentation visuals.
 
-The contents are organized into subfolders based on whether the assets are used in the final system or stored as extra material.
+The contents are organized into subfolders based on their purpose and usage context within the system.
 
 ### 📁 Subfolder Overview
+
+- **`media/`**  
+  Contains all visuals used specifically in `README.md` and documentation across the project.  
+  This includes GIFs, screenshots, and illustrations embedded in main README files to demonstrate features, structure, and system behavior.  
+  These resources help visually present the project on GitHub.
 
 - **`photos/`**  
   Contains all image and GIF files actively used in the system.  
@@ -29,11 +34,16 @@ The contents are organized into subfolders based on whether the assets are used 
 ## 🖼️ Изображения, гифки и видео, используемые в системе помощи водителю
 
 Эта папка содержит **все мультимедийные ресурсы**, используемые или подготовленные для интеграции в систему.  
-Сюда входят иллюстрации интерфейса, визуальные элементы, анимации и другие вспомогательные материалы.
+Сюда входят иллюстрации интерфейса, визуальные элементы, анимации, архивные материалы и графика для документации.
 
-Содержимое разделено по подпапкам в зависимости от их использования в финальной системе.
+Содержимое организовано по подпапкам в зависимости от назначения и области использования.
 
 ### 📁 Обзор подпапок
+
+- **`media/`**  
+  Содержит все визуальные ресурсы, используемые в файлах `README.md` и другой документации проекта.  
+  Включает в себя гифки, скриншоты и схемы, демонстрирующие работу системы, структуру проекта и интерфейс.  
+  Эти файлы обеспечивают **визуальное оформление репозитория** на GitHub.
 
 - **`photos/`**  
   Содержит изображения и гифки, **фактически используемые** в системе.  
