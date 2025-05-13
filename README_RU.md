@@ -1,5 +1,11 @@
 <p align="center">
-  <img src="raas_project/static/media/RAAS_logo_rounded.png" alt="RAAS Logo" width="300"/>
+  <img src="raas_project/static/media/RAAS_logo_rounded.png" alt="RAAS Logo" width="300"/><br><br>
+  <a href="https://github.com/TheAndreyZakharov/Russian-Automotive-Assistance-System/blob/main/README_RU.md">
+    <img src="https://img.shields.io/badge/README-Русский-brightgreen">
+  </a>
+  <a href="https://github.com/TheAndreyZakharov/Russian-Automotive-Assistance-System/blob/main/README.md">
+    <img src="https://img.shields.io/badge/README-English-blue">
+  </a>
 </p>
 
 <br> 
